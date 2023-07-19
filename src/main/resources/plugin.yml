@@ -1,0 +1,6 @@
+name: DynamicSeasons
+version: '${project.version}'
+main: de.tomasgng.dynamicseasons.DynamicSeasons
+api-version: 1.20
+authors: [TomasGnG]
+description: Implement the 4 seasons
