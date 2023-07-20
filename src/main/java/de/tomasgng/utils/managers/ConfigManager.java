@@ -1,4 +1,4 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.SeasonType;
@@ -10,7 +10,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 
 import java.io.File;
-import java.sql.Timestamp;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,10 +23,87 @@ public class ConfigManager {
     private final File folder = new File("plugins/DynamicSeasons");
     private final File config = new File("plugins/DynamicSeasons/config.yml");
     private YamlConfiguration cfg = YamlConfiguration.loadConfiguration(config);
+    private Connection connection;
 
     public ConfigManager() {
         createFiles();
+        createConnection();
+        setupDatabase();
     }
+
+    //region(SQLite)
+    @SneakyThrows
+    private void createConnection() {
+        new File("plugins/DynamicSeasons").mkdirs();
+        connection = DriverManager.getConnection("jdbc:sqlite:plugins/DynamicSeasons/data.db");
+
+        var statement = connection.prepareStatement(
+                "CREATE TABLE IF NOT EXISTS data (time BIGINT, season TEXT)");
+        statement.executeUpdate();
+        statement.close();
+    }
+
+    @SneakyThrows
+    private void setupDatabase() {
+        var statement = connection.prepareStatement("SELECT * FROM data");
+        var rs = statement.executeQuery();
+        if(!rs.next()) {
+            var statement2 = connection.prepareStatement("INSERT INTO data VALUES (?, ?)");
+            statement2.setInt(1, getDuration());
+            statement2.setString(2, SeasonType.SPRING.name());
+            statement2.executeUpdate();
+            statement2.close();
+        }
+        rs.close();
+        statement.close();
+    }
+
+    @SneakyThrows
+    public SeasonType getCurrentSeasonTypeFromDatabase() {
+        var statement = connection.prepareStatement("SELECT * FROM data");
+        var rs = statement.executeQuery();
+        rs.next();
+        SeasonType seasonType = SeasonType.valueOf(rs.getString("season"));
+        rs.close();
+        statement.close();
+        return seasonType;
+    }
+
+    @SneakyThrows
+    public int getRemainingTimeFromDatabase() {
+        var statement = connection.prepareStatement("SELECT * FROM data");
+        var rs = statement.executeQuery();
+        rs.next();
+        int remainingtime = rs.getInt("time");
+        rs.close();
+        statement.close();
+        return remainingtime;
+    }
+
+    @SneakyThrows
+    public void decreaseRemainingTime() {
+        var statement = connection.prepareStatement("UPDATE data SET time=?");
+        statement.setInt(1, getRemainingTimeFromDatabase()-1);
+        statement.executeUpdate();
+        statement.close();
+    }
+
+    @SneakyThrows
+    public void updateCurrentSeason(SeasonType newSeason) {
+        var statement = connection.prepareStatement("UPDATE data SET season=?");
+        statement.setString(1, newSeason.name());
+        statement.executeUpdate();
+        statement.close();
+    }
+
+    @SneakyThrows
+    public void resetRemainingTime() {
+        var statement = connection.prepareStatement("UPDATE data SET time=?");
+        statement.setInt(1, getDuration());
+        statement.executeUpdate();
+        statement.close();
+    }
+    //endregion
 
     @SneakyThrows
     private void createFiles() {

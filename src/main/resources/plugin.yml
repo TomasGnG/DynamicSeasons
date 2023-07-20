@@ -1,6 +1,14 @@
 name: DynamicSeasons
 version: '${project.version}'
-main: de.tomasgng.dynamicseasons.DynamicSeasons
-api-version: 1.20
+main: de.tomasgng.DynamicSeasons
+api-version: 1.19
 authors: [TomasGnG]
-description: Implement the 4 seasons
+description: Make your worlds more beautiful with seasons.
+softdepend:
+  - PlaceholderAPI
+commands:
+  dynamicseasons:
+    description: Main command for DynamicSeasons
+    aliases:
+      - dynseasons
+      - dseasons

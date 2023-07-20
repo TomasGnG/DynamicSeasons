@@ -1,4 +1,4 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.enums;
 
 public enum WeatherType {
     CLEAR,

@@ -1,6 +1,7 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
+import de.tomasgng.utils.Season;
 import de.tomasgng.utils.enums.SeasonType;
 import lombok.Getter;
 import org.apache.commons.lang3.time.DurationFormatUtils;
@@ -28,7 +29,7 @@ public class SeasonManager {
     private void initialize() {
         for(var seasonName : List.of("spring", "summer", "fall", "winter")) {
             SeasonType seasonType = SeasonType.valueOf(seasonName.toUpperCase());
-            Season season = new Season(seasonType,
+            Season season = new Season(
                     config.getAllowedWorlds(),
                     config.getWeather(seasonName),
                     config.getWeatherTypes(seasonName),
@@ -40,17 +41,18 @@ public class SeasonManager {
 
             seasons.put(seasonType, season);
         }
-        currentSeason = SeasonType.SPRING;
+        currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
         currentSeasonInstance.start();
     }
 
     private void startSeasonTimer() {
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
-            remainingTime--;
+            config.decreaseRemainingTime();
+            remainingTime = config.getRemainingTimeFromDatabase();
             if(remainingTime <= 0) {
                 changeCurrentSeason();
-                resetRemainingTime();
+                config.resetRemainingTime();
                 currentSeasonInstance.start();
             }
         }, 3*20L, 20L);
@@ -61,22 +63,20 @@ public class SeasonManager {
         var nextInt = seasonTypes.indexOf(currentSeason)+1;
         if(nextInt > 3)
             nextInt = 0;
-        currentSeason = seasonTypes.get(nextInt);
+        config.updateCurrentSeason(seasonTypes.get(nextInt));
+        currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
     }
 
     public void changeCurrentSeason(SeasonType seasonType) {
-        resetRemainingTime();
-        currentSeason = seasonType;
+        config.resetRemainingTime();
+        config.updateCurrentSeason(seasonType);
+        currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
     }
 
-    private void resetRemainingTime() {
-        remainingTime = duration;
-    }
-
     public String getFormattedDuration() {
-        return DurationFormatUtils.formatDuration(remainingTime* 1000L, config.getDurationPlacerholderRawFormat());
+        return DurationFormatUtils.formatDuration(config.getRemainingTimeFromDatabase()*1000L, config.getDurationPlacerholderRawFormat());
     }
 
 }

@@ -1,4 +1,4 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.SeasonType;

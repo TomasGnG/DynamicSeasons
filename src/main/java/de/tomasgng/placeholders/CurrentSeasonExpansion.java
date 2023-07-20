@@ -1,15 +1,21 @@
 package de.tomasgng.placeholders;
 
 import de.tomasgng.DynamicSeasons;
+import de.tomasgng.utils.managers.ConfigManager;
+import de.tomasgng.utils.managers.SeasonManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class DurationExpansion extends PlaceholderExpansion {
+public class CurrentSeasonExpansion extends PlaceholderExpansion {
+
+    private final ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
+    private final SeasonManager seasonManager = DynamicSeasons.getInstance().getSeasonManager();
+
     @Override
     public @NotNull String getIdentifier() {
-        return DynamicSeasons.getInstance().getConfigManager().getDurationPlaceholderName();
+        return configManager.getCurrentSeasonPlaceholderName();
     }
 
     @Override
@@ -29,6 +35,6 @@ public class DurationExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
-        return DynamicSeasons.getInstance().getSeasonManager().getFormattedDuration();
+        return configManager.getCurrentSeasonText(seasonManager.getCurrentSeason());
     }
 }
