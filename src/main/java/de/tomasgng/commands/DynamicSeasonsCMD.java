@@ -1,9 +1,10 @@
 package de.tomasgng.commands;
 
 import de.tomasgng.DynamicSeasons;
+import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
-import de.tomasgng.utils.enums.SeasonType;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -46,6 +47,11 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
                 return false;
             }
             player.sendMessage(messageManager.getCMDSeasonChangedComponent(seasonManager.getCurrentSeason(), season));
+            if(messageManager.isSeasonChangeBroadcastEnabled())
+                Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(seasonManager.getCurrentSeason(), season));
+            if(messageManager.isSeasonChangeTitleEnabled()) {
+                Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(seasonManager.getCurrentSeason(), season));
+            }
             seasonManager.changeCurrentSeason(season);
         }
 
