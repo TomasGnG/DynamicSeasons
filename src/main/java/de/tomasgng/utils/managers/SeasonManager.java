@@ -7,7 +7,9 @@ import lombok.Getter;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.bukkit.Bukkit;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TreeMap;
 
 public class SeasonManager {
 
@@ -59,16 +61,26 @@ public class SeasonManager {
     }
 
     private void changeCurrentSeason() {
+        var messageManager = DynamicSeasons.getInstance().getMessageManager();
         List<SeasonType> seasonTypes = Arrays.asList(SeasonType.values());
         var nextInt = seasonTypes.indexOf(currentSeason)+1;
         if(nextInt > 3)
             nextInt = 0;
+        if(messageManager.isSeasonChangeBroadcastEnabled())
+            Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
+        if(messageManager.isSeasonChangeTitleEnabled())
+            Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
         config.updateCurrentSeason(seasonTypes.get(nextInt));
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
     }
 
     public void changeCurrentSeason(SeasonType seasonType) {
+        var messageManager = DynamicSeasons.getInstance().getMessageManager();
+        if(messageManager.isSeasonChangeBroadcastEnabled())
+            Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonType));
+        if(messageManager.isSeasonChangeTitleEnabled())
+            Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonType));
         config.resetRemainingTime();
         config.updateCurrentSeason(seasonType);
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
