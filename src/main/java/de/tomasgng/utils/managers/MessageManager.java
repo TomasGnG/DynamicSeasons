@@ -5,9 +5,11 @@ import de.tomasgng.utils.enums.SeasonType;
 import lombok.SneakyThrows;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.title.Title;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
 
 public class MessageManager {
@@ -36,6 +38,15 @@ public class MessageManager {
                     "The messages need to be in MiniMessage format.",
                     "MiniMessage Help: https://docs.advntr.dev/minimessage/index.html",
                     "Here you can test if your messages are valid: https://webui.advntr.dev/"));
+            cfg.set("season_change.broadcast.enabled", true);
+            cfg.set("season_change.broadcast.text", "%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.");
+            cfg.set("season_change.title.enabled", true);
+            cfg.set("season_change.title.title", "<yellow>Season Change");
+            cfg.set("season_change.title.subtitle", "<italic><dark_gray>-> <green>%newSeason%");
+            cfg.set("season_change.title.times.fadein", 1);
+            cfg.set("season_change.title.times.stay", 4);
+            cfg.set("season_change.title.times.fadeout", 1);
+            cfg.setComments("season_change.title.times", List.of("Time in seconds"));
 
             save();
         }
@@ -136,6 +147,97 @@ public class MessageManager {
                     .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
         }
         return mm.deserialize(msg);
+    }
+
+    public Component getSeasonChangeBroadcastComponent(SeasonType seasonBefore, SeasonType newSeason) {
+        var configManager = DynamicSeasons.getInstance().getConfigManager();
+        var msg = cfg.getString("season_change.broadcast.text");
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast message.");
+            return mm.deserialize("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
+                    .replace("%prefix%", getPrefixRaw())
+                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
+                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+        }
+        msg = msg.replace("%prefix%", getPrefixRaw())
+                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
+                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        try {
+            mm.deserializeOrNull(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast format.\nError: " + e.getMessage());
+            return mm.deserialize("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
+                    .replace("%prefix%", getPrefixRaw())
+                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
+                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+        }
+        return mm.deserialize(msg);
+    }
+
+    public boolean isSeasonChangeBroadcastEnabled() {
+        return cfg.getBoolean("season_change.broadcast.enabled");
+    }
+
+    public boolean isSeasonChangeTitleEnabled() {
+        return cfg.getBoolean("season_change.title.enabled");
+    }
+
+    public Title getSeasonChangeTitleComponent(SeasonType seasonBefore, SeasonType newSeason) {
+        var configManager = DynamicSeasons.getInstance().getConfigManager();
+        var title = cfg.getString("season_change.title.title");
+        var subtitle = cfg.getString("season_change.title.subtitle");
+        var fadein = cfg.getInt("season_change.title.times.fadein");
+        var stay = cfg.getInt("season_change.title.times.stay");
+        var fadeout = cfg.getInt("season_change.title.times.fadeout");
+        var defaultTitleReturn = Title.title(mm.deserialize("<yellow>Season Change"), mm.deserialize("<italic><dark_gray>-> <green>%newSeason%"
+                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason))), Title.DEFAULT_TIMES);
+
+        if(title == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change title.");
+            return defaultTitleReturn;
+        }
+        if(subtitle == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change subtitle.");
+            return defaultTitleReturn;
+        }
+        if(fadein == 0 || fadein > 60) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change title fadein.");
+            fadein = 1;
+        }
+        if(stay == 0 || stay > 60) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change title stay.");
+            stay = 4;
+        }
+        if(fadeout == 0 || fadeout > 60) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change title fadeout.");
+            fadeout = 1;
+        }
+        title = title.replace("%prefix%", getPrefixRaw())
+                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
+                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        subtitle = subtitle.replace("%prefix%", getPrefixRaw())
+                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
+                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+
+        try {
+            mm.deserialize(title);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change title format.\nError: " + e.getMessage());
+            return defaultTitleReturn;
+        }
+        try {
+            mm.deserialize(subtitle);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid season change subtitle format.\nError: " + e.getMessage());
+            return defaultTitleReturn;
+        }
+
+        return Title.title(mm.deserialize(title),
+                mm.deserialize(subtitle),
+                Title.Times.times(
+                        Duration.ofSeconds(fadein),
+                        Duration.ofSeconds(stay),
+                        Duration.ofSeconds(fadeout)));
     }
 
 }
