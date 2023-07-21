@@ -8,6 +8,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.time.Duration;
 import java.util.List;
@@ -18,6 +19,7 @@ public class MessageManager {
     private final File file = new File("plugins/DynamicSeasons/messages.yml");
     private YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
     private final MiniMessage mm = MiniMessage.miniMessage();
+    private final ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
 
     public MessageManager() {
         createFiles();
@@ -31,9 +33,12 @@ public class MessageManager {
 
             cfg.set("prefix", "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|");
             cfg.set("command.noPermission", "%prefix% <gray>You have no permission to use this command.");
-            cfg.set("command.usage", "%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>");
+            cfg.set("command.usage", "%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
+                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>");
             cfg.set("command.seasonAlreadyActive", "%prefix% <gray>This season is already active.");
             cfg.set("command.seasonChanged", "%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.");
+            cfg.set("command.invalidNumberFormat", "%prefix% <gray>Invalid number!");
+            cfg.set("command.remainingTimeSet", "%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!");
             cfg.setComments("prefix", List.of("Here you can change the message outputs.",
                     "The messages need to be in MiniMessage format.",
                     "MiniMessage Help: https://docs.advntr.dev/minimessage/index.html",
@@ -62,6 +67,20 @@ public class MessageManager {
         cfg = YamlConfiguration.loadConfiguration(file);
     }
 
+    private String replaceAllPlaceholders(String text,
+                                          @Nullable SeasonType seasonBefore,
+                                          @Nullable SeasonType newSeason,
+                                          int newRemainingTime) {
+        text = text.replace("%prefix%", getPrefixRaw());
+        if(seasonBefore != null)
+            text = text.replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore));
+        if(newSeason != null)
+            text = text.replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        if(newRemainingTime != -1)
+            text = text.replace("%remainingTime%", String.valueOf(newRemainingTime));
+        return text;
+    }
+
     private String getPrefixRaw() {
         var prefix = cfg.getString("prefix");
         if(prefix == null) {
@@ -69,7 +88,7 @@ public class MessageManager {
             return "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|";
         }
         try {
-            mm.deserializeOrNull(prefix);
+            mm.deserialize(prefix);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid prefix format.");
         }
@@ -78,98 +97,86 @@ public class MessageManager {
 
     public Component getCMDNoPermissionComponent() {
         var msg = cfg.getString("command.noPermission");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You have no permission to use this command.", null, null, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid no permission message.");
-            return mm.deserialize("%prefix% <gray>You have no permission to use this command.".replace("%prefix%", getPrefixRaw()));
+            return defaultReturn;
         }
-        msg = msg.replace("%prefix%", getPrefixRaw());
+        msg = replaceAllPlaceholders(msg, null, null, -1);
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid no permission format.\nError: " + e.getMessage());
-            return mm.deserialize("%prefix% <gray>You have no permission to use this command.".replace("%prefix%", getPrefixRaw()));
+            return defaultReturn;
         }
         return mm.deserialize(msg);
     }
 
     public Component getCMDUsageComponent() {
         var msg = cfg.getString("command.usage");
+        var defaultCMDUsage = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
+                "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>", null, null, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid usage message.");
-            return mm.deserialize("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>".replace("%prefix%", getPrefixRaw()));
+            return defaultCMDUsage;
         }
-        msg = msg.replace("%prefix%", getPrefixRaw());
+        msg = replaceAllPlaceholders(msg, null, null, -1);
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid usage format.\nError: " + e.getMessage());
-            return mm.deserialize("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>".replace("%prefix%", getPrefixRaw()));
+            return defaultCMDUsage;
         }
         return mm.deserialize(msg);
     }
 
     public Component getCMDSeasonAlreadyActiveComponent() {
         var msg = cfg.getString("command.seasonAlreadyActive");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>This season is already active.", null, null, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season already active message.");
-            return mm.deserialize("%prefix% <gray>This season is already active.".replace("%prefix%", getPrefixRaw()));
+            return defaultReturn;
         }
-        msg = msg.replace("%prefix%", getPrefixRaw());
+        msg = replaceAllPlaceholders(msg, null, null, -1);
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season already active format.\nError: " + e.getMessage());
-            return mm.deserialize("%prefix% <gray>This season is already active.".replace("%prefix%", getPrefixRaw()));
+            return defaultReturn;
         }
         return mm.deserialize(msg);
     }
 
     public Component getCMDSeasonChangedComponent(SeasonType seasonBefore, SeasonType newSeason) {
-        var configManager = DynamicSeasons.getInstance().getConfigManager();
         var msg = cfg.getString("command.seasonChanged");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.", seasonBefore, newSeason, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season changed message.");
-            return mm.deserialize("%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
-                    .replace("%prefix%", getPrefixRaw())
-                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+            return defaultReturn;
         }
-        msg = msg.replace("%prefix%", getPrefixRaw())
-                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        msg = replaceAllPlaceholders(msg, seasonBefore, newSeason, -1);
         try {
-            mm.deserializeOrNull(msg);
+            mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season changed format.\nError: " + e.getMessage());
-            return mm.deserialize("%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
-                    .replace("%prefix%", getPrefixRaw())
-                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+            return defaultReturn;
         }
         return mm.deserialize(msg);
     }
 
     public Component getSeasonChangeBroadcastComponent(SeasonType seasonBefore, SeasonType newSeason) {
-        var configManager = DynamicSeasons.getInstance().getConfigManager();
         var msg = cfg.getString("season_change.broadcast.text");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.", seasonBefore, newSeason, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast message.");
-            return mm.deserialize("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
-                    .replace("%prefix%", getPrefixRaw())
-                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+            return defaultReturn;
         }
-        msg = msg.replace("%prefix%", getPrefixRaw())
-                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        msg = replaceAllPlaceholders(msg, seasonBefore, newSeason, -1);
         try {
-            mm.deserializeOrNull(msg);
+            mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast format.\nError: " + e.getMessage());
-            return mm.deserialize("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>."
-                    .replace("%prefix%", getPrefixRaw())
-                    .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                    .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason)));
+            return defaultReturn;
         }
         return mm.deserialize(msg);
     }
@@ -183,14 +190,14 @@ public class MessageManager {
     }
 
     public Title getSeasonChangeTitleComponent(SeasonType seasonBefore, SeasonType newSeason) {
-        var configManager = DynamicSeasons.getInstance().getConfigManager();
         var title = cfg.getString("season_change.title.title");
         var subtitle = cfg.getString("season_change.title.subtitle");
         var fadein = cfg.getInt("season_change.title.times.fadein");
         var stay = cfg.getInt("season_change.title.times.stay");
         var fadeout = cfg.getInt("season_change.title.times.fadeout");
-        var defaultTitleReturn = Title.title(mm.deserialize("<yellow>Season Change"), mm.deserialize("<italic><dark_gray>-> <green>%newSeason%"
-                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason))), Title.DEFAULT_TIMES);
+        var defaultTitleReturn = Title.title(mm.deserialize(replaceAllPlaceholders("<yellow>Season Change",null,null,-1)),
+                mm.deserialize(replaceAllPlaceholders("<italic><dark_gray>-> <green>%newSeason%", seasonBefore, newSeason, -1)),
+                Title.DEFAULT_TIMES);
 
         if(title == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title.");
@@ -212,12 +219,8 @@ public class MessageManager {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title fadeout.");
             fadeout = 1;
         }
-        title = title.replace("%prefix%", getPrefixRaw())
-                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
-        subtitle = subtitle.replace("%prefix%", getPrefixRaw())
-                .replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore))
-                .replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+        title = replaceAllPlaceholders(title, seasonBefore, newSeason, -1);
+        subtitle = replaceAllPlaceholders(subtitle, seasonBefore, newSeason, -1);
 
         try {
             mm.deserialize(title);
@@ -238,6 +241,40 @@ public class MessageManager {
                         Duration.ofSeconds(fadein),
                         Duration.ofSeconds(stay),
                         Duration.ofSeconds(fadeout)));
+    }
+    
+    public Component getCMDInvalidNumberFormatComponent() {
+        var msg = cfg.getString("command.invalidNumberFormat");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>Invalid number!", null, null, -1));
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid invalidNumberFormat message.");
+            return defaultReturn;
+        }
+        msg = replaceAllPlaceholders(msg, null, null, -1);
+        try {
+            mm.deserialize(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid invalidNumberFormat format.\nError: " + e.getMessage());
+            return defaultReturn;
+        }
+        return mm.deserialize(msg);
+    }
+    
+    public Component getCMDRemainingTimeSet(int newRemainingTime) {
+        var msg = cfg.getString("command.remainingTimeSet");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!", null, null, newRemainingTime));
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid remainingTimeSet message.");
+            return defaultReturn;
+        }
+        msg = replaceAllPlaceholders(msg, null, null, newRemainingTime);
+        try {
+            mm.deserialize(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid remainingTimeSet format.\nError: " + e.getMessage());
+            return defaultReturn;
+        }
+        return mm.deserialize(msg);
     }
 
 }

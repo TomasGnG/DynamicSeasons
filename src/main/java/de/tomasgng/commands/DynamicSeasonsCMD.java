@@ -2,8 +2,10 @@ package de.tomasgng.commands;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.SeasonType;
+import de.tomasgng.utils.managers.ConfigManager;
 import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,6 +20,7 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
 
     SeasonManager seasonManager = DynamicSeasons.getInstance().getSeasonManager();
     MessageManager messageManager = DynamicSeasons.getInstance().getMessageManager();
+    ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String string, @NotNull String[] args) {
@@ -31,11 +34,15 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
-        if(args.length == 2) {
-            if(!args[0].equalsIgnoreCase("setseason")) {
-                player.sendMessage(messageManager.getCMDUsageComponent());
-                return false;
-            }
+        if(args.length != 2) {
+            player.sendMessage(messageManager.getCMDUsageComponent());
+            return false;
+        }
+        if(!args[0].equalsIgnoreCase("setseason") && !args[0].equalsIgnoreCase("setremainingtime")) {
+            player.sendMessage(messageManager.getCMDUsageComponent());
+            return false;
+        }
+        if(args[0].equalsIgnoreCase("setseason")) {
             if(!List.of("spring", "summer", "fall", "winter").contains(args[1].toLowerCase())) {
                 player.sendMessage(messageManager.getCMDUsageComponent());
                 return false;
@@ -47,6 +54,17 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             }
             player.sendMessage(messageManager.getCMDSeasonChangedComponent(seasonManager.getCurrentSeason(), season));
             seasonManager.changeCurrentSeason(season);
+        }
+        if(args[0].equalsIgnoreCase("setremainingtime")) {
+            try {
+                Integer.parseInt(args[1]);
+            } catch (Exception e) {
+                player.sendMessage(messageManager.getCMDInvalidNumberFormatComponent());
+                return false;
+            }
+            int newRemainingTime = Integer.parseInt(args[1]);
+            configManager.setRemainingTime(newRemainingTime);
+            player.sendMessage(messageManager.getCMDRemainingTimeSet(newRemainingTime));
         }
 
         return false;
@@ -60,9 +78,13 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             if(!commandSender.hasPermission("dynamicseasons.command.use"))
                 return null;
             if(args.length == 1)
-                return List.of("setseason");
-            if(args.length == 2 && args[0].equalsIgnoreCase("setseason")) {
-                return List.of("SPRING", "SUMMER", "FALL", "WINTER");
+                return List.of("setseason", "setremainingtime");
+            if(args.length == 2) {
+                if(args[0].equalsIgnoreCase("setseason"))
+                    return List.of("SPRING", "SUMMER", "FALL", "WINTER");
+                if(args[0].equalsIgnoreCase("setremainingtime")) {
+                    commandSender.sendActionBar(Component.text("Current remaining time in seconds: " + seasonManager.getRemainingTime()));
+                }
             }
             return null;
         }

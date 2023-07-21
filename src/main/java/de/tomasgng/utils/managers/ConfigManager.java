@@ -103,6 +103,14 @@ public class ConfigManager {
         statement.executeUpdate();
         statement.close();
     }
+
+    @SneakyThrows
+    public void setRemainingTime(int newRemainingTime) {
+        var statement = connection.prepareStatement("UPDATE data SET time=?");
+        statement.setInt(1, newRemainingTime);
+        statement.executeUpdate();
+        statement.close();
+    }
     //endregion
 
     @SneakyThrows
