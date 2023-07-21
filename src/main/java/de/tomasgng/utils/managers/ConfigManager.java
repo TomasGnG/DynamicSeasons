@@ -256,16 +256,27 @@ public class ConfigManager {
         return duration;
     }
 
+    private boolean alreadyPrintedInvalidWorlds = false;
+
     public List<World> getAllowedWorlds() {
         List<World> worlds = new ArrayList<>();
         var section = cfg.getStringList("worlds");
         for(var worldName : section) {
-            try {
-                worlds.add(Bukkit.getWorld(worldName));
-            } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid world -> \"" + worldName + "\"");
+            if(Bukkit.getWorld(worldName) == null) {
+                if(!alreadyPrintedInvalidWorlds)
+                    DynamicSeasons.getInstance().getLogger().severe("Invalid world -> \"" + worldName + "\"");
+                continue;
             }
+            worlds.add(Bukkit.getWorld(worldName));
         }
+        if(worlds.size() == 0) {
+            if(!alreadyPrintedInvalidWorlds) {
+                DynamicSeasons.getInstance().getLogger().severe("0 worlds loaded. Disabling plugin...");
+                DynamicSeasons.getInstance().getLogger().severe("Add worlds to your config.yml!");
+            }
+            Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> Bukkit.getPluginManager().disablePlugin(DynamicSeasons.getInstance()));
+        }
+        alreadyPrintedInvalidWorlds = true;
         return worlds;
     }
 
