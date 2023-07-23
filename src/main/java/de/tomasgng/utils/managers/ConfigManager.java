@@ -12,7 +12,6 @@ import org.bukkit.entity.EntityType;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -120,37 +119,43 @@ public class ConfigManager {
             config.createNewFile();
 
             cfg.set("season_duration", 300);
-            cfg.setComments("season_duration", List.of("Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
             cfg.set("worlds", List.of("world"));
-            cfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
             cfg.set("placeholders.duration.placeholderName", "duration");
             cfg.set("placeholders.duration.format", "HH:mm:ss");
-            cfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
             cfg.set("placeholders.currentSeason.placeholderName", "currentSeason");
             cfg.set("placeholders.currentSeason.text.spring", "Spring");
             cfg.set("placeholders.currentSeason.text.summer", "Summer");
             cfg.set("placeholders.currentSeason.text.fall", "Fall");
             cfg.set("placeholders.currentSeason.text.winter", "Winter");
+            cfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
+            cfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
+            cfg.setComments("season_duration", List.of("Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
             cfg.setComments("placeholders.currentSeason.text", List.of("Set the replacement for these seasons."));
 
             cfg.set("spring.weather.enabled", true);
             cfg.set("spring.weather.type.clear", true);
             cfg.set("spring.weather.type.storm", true);
             cfg.set("spring.weather.type.thunder", false);
-            cfg.setComments("spring.weather", List.of("Customize the weather for the season"));
-            cfg.setComments("spring.weather.type", List.of("Customize the allowed weather types"));
             cfg.set("spring.randomTickSpeed", 4);
-            cfg.setComments("spring.randomTickSpeed", List.of("The growth speed of plants etc. default value -> 3.", "higher -> faster | large values can cause server lag!", "Heres a list what will be effected by the change: https://minecraft.fandom.com/wiki/Tick#:~:text=Most%20blocks%20ignore%20this%20tick%2C%20but%20some%20use%20it%20to%20do%20something%3A"));
             cfg.set("spring.animalSpawning.SHEEP", 80);
             cfg.set("spring.animalSpawning.CHICKEN", 40);
-            cfg.setComments("spring.animalSpawning", List.of("The probability of an animal to spawn. 1-100%", "Here is a list of all animals: https://pastebin.com/raw/Tf3mMGg6", "Format -> (MOB_NAME): (PERCENT)"));
             cfg.set("spring.mobMovement.ZOMBIE", 0.3);
             cfg.set("spring.mobMovement.SPIDER", 0.4);
-            cfg.setComments("spring.mobMovement", List.of("Customize the movement speed of mobs", "Here is a list of all mobs and their default movement speed: https://pastebin.com/raw/2WaGi20Z", "Format -> (MOB_NAME): (SPEED)"));
             cfg.set("spring.animalGrowing.COW", 6000);
             cfg.set("spring.animalGrowing.SHEEP", 3600);
-            cfg.setComments("spring.animalGrowing", List.of("Customize the speed of animal growing", "Most baby mobs take 20 mins (24000 ticks) to grow up", "Here is a list of all breedable animals: https://pastebin.com/raw/zzUAc3XM", "Here is a tick calculator: https://mapmaking.fr/tick/", "IMPORTANT: 20 ticks = 1 second", "Format -> (ANIMAL_NAME): (TIME IN TICKS)"));
+            cfg.set("spring.mobBonusArmor.ZOMBIE", 2.5);
+            cfg.set("spring.mobBonusArmor.CREEPER", 1.0);
+            cfg.set("spring.mobMaxHealth.CREEPER", 25.0);
+            cfg.set("spring.mobMaxHealth.ZOMBIE", 30.0);
             cfg.set("spring.xpBonus", 20);
+            cfg.setComments("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
+            cfg.setComments("spring.mobMaxHealth", List.of("Customize the max health for mobs", "2 equals 1 heart | MAX is 20", "List of all mobs and their max health: https://pastebin.com/raw/5upq7HVr"));
+            cfg.setComments("spring.animalGrowing", List.of("Customize the speed of animal growing", "Most baby mobs take 20 mins (24000 ticks) to grow up", "Here is a list of all breedable animals: https://pastebin.com/raw/zzUAc3XM", "Here is a tick calculator: https://mapmaking.fr/tick/", "IMPORTANT: 20 ticks = 1 second", "Format -> (ANIMAL_NAME): (TIME IN TICKS)"));
+            cfg.setComments("spring.mobMovement", List.of("Customize the movement speed of mobs", "Here is a list of all mobs and their default movement speed: https://pastebin.com/raw/2WaGi20Z", "Format -> (MOB_NAME): (SPEED)"));
+            cfg.setComments("spring.animalSpawning", List.of("The probability of an animal to spawn. 1-100%", "Here is a list of all animals: https://pastebin.com/raw/Tf3mMGg6", "Format -> (MOB_NAME): (PERCENT)"));
+            cfg.setComments("spring.randomTickSpeed", List.of("The growth speed of plants etc. default value -> 3.", "higher -> faster | large values can cause server lag!", "Heres a list what will be effected by the change: https://minecraft.fandom.com/wiki/Tick#:~:text=Most%20blocks%20ignore%20this%20tick%2C%20but%20some%20use%20it%20to%20do%20something%3A"));
+            cfg.setComments("spring.weather", List.of("Customize the weather for the season"));
+            cfg.setComments("spring.weather.type", List.of("Customize the allowed weather types"));
             cfg.setComments("spring.xpBonus", List.of("The bonus xp you get when picking up xp (in percent)", "e.g. if you set 20 then the player will get 20% more xp. (20% of the picked up xp)"));
 
             cfg.set("summer.weather.enabled", true);
@@ -164,6 +169,10 @@ public class ConfigManager {
             cfg.set("summer.mobMovement.SPIDER", 0.4);
             cfg.set("summer.animalGrowing.COW", 6000);
             cfg.set("summer.animalGrowing.SHEEP", 3600);
+            cfg.set("summer.mobBonusArmor.ZOMBIE", 2.5);
+            cfg.set("summer.mobBonusArmor.CREEPER", 1.0);
+            cfg.set("summer.mobMaxHealth.CREEPER", 25.0);
+            cfg.set("summer.mobMaxHealth.ZOMBIE", 30.0);
             cfg.set("summer.xpBonus", 20);
 
             cfg.set("fall.weather.enabled", true);
@@ -177,6 +186,10 @@ public class ConfigManager {
             cfg.set("fall.mobMovement.SPIDER", 0.4);
             cfg.set("fall.animalGrowing.COW", 6000);
             cfg.set("fall.animalGrowing.SHEEP", 3600);
+            cfg.set("fall.mobBonusArmor.ZOMBIE", 2.5);
+            cfg.set("fall.mobBonusArmor.CREEPER", 1.0);
+            cfg.set("fall.mobMaxHealth.CREEPER", 25.0);
+            cfg.set("fall.mobMaxHealth.ZOMBIE", 30.0);
             cfg.set("fall.xpBonus", 20);
 
             cfg.set("winter.weather.enabled", true);
@@ -190,6 +203,10 @@ public class ConfigManager {
             cfg.set("winter.mobMovement.SPIDER", 0.4);
             cfg.set("winter.animalGrowing.COW", 6000);
             cfg.set("winter.animalGrowing.SHEEP", 3600);
+            cfg.set("winter.mobBonusArmor.ZOMBIE", 2.5);
+            cfg.set("winter.mobBonusArmor.CREEPER", 1.0);
+            cfg.set("winter.mobMaxHealth.CREEPER", 25.0);
+            cfg.set("winter.mobMaxHealth.ZOMBIE", 30.0);
             cfg.set("winter.xpBonus", 20);
 
             save();
@@ -213,20 +230,6 @@ public class ConfigManager {
             return "duration";
         }
         return name;
-    }
-
-    public DateTimeFormatter getDurationPlaceholderFormat() {
-        var format = cfg.getString("placeholders.duration.format");
-        if(format == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid duration format. Using default name -> HH:mm:ss");
-            return DateTimeFormatter.ofPattern("HH:mm:ss");
-        }
-        try {
-            return DateTimeFormatter.ofPattern(format);
-        } catch (Exception e) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid duration format. Using default name -> HH:mm:ss");
-            return DateTimeFormatter.ofPattern("HH:mm:ss");
-        }
     }
 
     public String getDurationPlacerholderRawFormat() {
@@ -360,6 +363,40 @@ public class ConfigManager {
             }
         }
         return animalGrowing;
+    }
+
+    public Map<EntityType, Double> getMobBonusArmor(String season) {
+        Map<EntityType, Double> mobBonusArmor = new HashMap<>();
+        var sectionKeys = cfg.getConfigurationSection(season + ".mobBonusArmor").getKeys(false);
+        for (var mob : sectionKeys) {
+            try {
+                EntityType entityType = EntityType.valueOf(mob);
+                double bonusArmor = cfg.getDouble(season + ".mobBonusArmor." + mob);
+                if(bonusArmor < 0)
+                    throw new NullPointerException();
+                mobBonusArmor.put(entityType, bonusArmor);
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid mobBonusArmor '" + mob + "' for season: " + season);
+            }
+        }
+        return mobBonusArmor;
+    }
+
+    public Map<EntityType, Double> getMobMaxHealth(String season) {
+        Map<EntityType, Double> mobMaxHealth = new HashMap<>();
+        var sectionKeys = cfg.getConfigurationSection(season + ".mobMaxHealth").getKeys(false);
+        for (var mob : sectionKeys) {
+            try {
+                EntityType entityType = EntityType.valueOf(mob);
+                double maxHealth = cfg.getDouble(season + ".mobMaxHealth." + mob);
+                if(maxHealth <= 0)
+                    throw new NullPointerException();
+                mobMaxHealth.put(entityType, maxHealth);
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid mobMaxHealth '" + mob + "' for season: " + season);
+            }
+        }
+        return mobMaxHealth;
     }
 
     public int getXPBonus(String season) {

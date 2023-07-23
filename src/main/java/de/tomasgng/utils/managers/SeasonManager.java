@@ -39,6 +39,8 @@ public class SeasonManager {
                     config.getAnimalSpawning(seasonName),
                     config.getMobMovement(seasonName),
                     config.getAnimalGrowing(seasonName),
+                    config.getMobBonusArmor(seasonName),
+                    config.getMobMaxHealth(seasonName),
                     config.getXPBonus(seasonName));
 
             seasons.put(seasonType, season);

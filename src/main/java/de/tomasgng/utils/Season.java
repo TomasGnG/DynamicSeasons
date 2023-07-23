@@ -1,6 +1,5 @@
 package de.tomasgng.utils;
 
-import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
 import org.bukkit.GameRule;
 import org.bukkit.World;
@@ -22,6 +21,8 @@ public class Season {
     private final Map<EntityType, Integer> animalSpawning;
     private final Map<EntityType, Double> mobMovement;
     private final Map<EntityType, Integer> animalGrowing;
+    private final Map<EntityType, Double> mobBonusArmor;
+    private final Map<EntityType, Double> mobMaxHealth;
     private final int xpBonus;
 
     public Season(List<World> worlds,
@@ -31,6 +32,8 @@ public class Season {
                   Map<EntityType, Integer> animalSpawning,
                   Map<EntityType, Double> mobMovement,
                   Map<EntityType, Integer> animalGrowing,
+                  Map<EntityType, Double> mobBonusArmor,
+                  Map<EntityType, Double> mobMaxHealth,
                   int xpBonus) {
         this.worlds = worlds;
         this.weather = weather;
@@ -39,6 +42,8 @@ public class Season {
         this.animalSpawning = animalSpawning;
         this.mobMovement = mobMovement;
         this.animalGrowing = animalGrowing;
+        this.mobBonusArmor = mobBonusArmor;
+        this.mobMaxHealth = mobMaxHealth;
         this.xpBonus = xpBonus;
     }
 
@@ -68,6 +73,8 @@ public class Season {
         if(!animalSpawning.containsKey(entity.getType())) {
             handleMobMovement(entity);
             handleAnimalGrowing(entity);
+            handleMobArmorBonus(entity);
+            handleMobMaxHealth(entity);
             return false;
         }
         int chanceToSpawn = animalSpawning.get(entity.getType());
@@ -76,6 +83,8 @@ public class Season {
             return true;
         handleAnimalGrowing(entity);
         handleMobMovement(entity);
+        handleMobArmorBonus(entity);
+        handleMobMaxHealth(entity);
         return false;
     }
 
@@ -97,6 +106,25 @@ public class Season {
             return;
         var movementSpeed = mobMovement.get(entity.getType());
         entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(movementSpeed);
+    }
+
+    private void handleMobArmorBonus(LivingEntity entity) {
+        if(!isValidWorld(entity.getWorld()))
+            return;
+        if(!mobBonusArmor.containsKey(entity.getType()))
+            return;
+        var bonusArmor = mobBonusArmor.get(entity.getType());
+        entity.getAttribute(Attribute.GENERIC_ARMOR).setBaseValue(bonusArmor);
+    }
+
+    private void handleMobMaxHealth(LivingEntity entity) {
+        if(!isValidWorld(entity.getWorld()))
+            return;
+        if(!mobMaxHealth.containsKey(entity.getType()))
+            return;
+        var maxHealth = mobMaxHealth.get(entity.getType());
+        entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
+        entity.setHealth(entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue());
     }
 
     public int handleXPBonus(int xp) {

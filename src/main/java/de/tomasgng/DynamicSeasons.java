@@ -12,11 +12,15 @@ import de.tomasgng.utils.managers.ConfigManager;
 import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
 import lombok.Getter;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 public final class DynamicSeasons extends JavaPlugin {
 
@@ -31,12 +35,28 @@ public final class DynamicSeasons extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        /*
+        var entities = EntityType.values();
+        for(var entity : entities) {
+            if(!entity.isAlive() && !entity.isSpawnable()) {
+                System.out.println(entity.name());
+                continue;
+            }
+            if(Attributable.class.isAssignableFrom(entity.getEntityClass())) {
+                System.out.println(entity.name() + ": " + entity.getDefaultAttributes().getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue());
+            }
+        }
+         */
+
         instance = this;
         configManager = new ConfigManager();
         seasonManager = new SeasonManager();
         messageManager = new MessageManager();
 
         register();
+        updateCheck();
+
+
     }
 
     private void register() {
@@ -62,6 +82,32 @@ public final class DynamicSeasons extends JavaPlugin {
             new CurrentSeasonExpansion().register();
         } else
             getLogger().warning("PlaceholderAPI not found. Placeholders will be disabled.");
+    }
+
+    private void updateCheck() {
+        var currentVersion = getPluginMeta().getVersion();
+        String latestVersion = "";
+
+        try {
+            var url = new URL("https://pastebin.com/raw/DZXYPzR7");
+            var scanner = new Scanner(url.openStream());
+            var sb = new StringBuilder();
+            while(scanner.hasNext()) {
+                sb.append(scanner.next());
+            }
+            latestVersion = sb.toString();
+        } catch (IOException e) {
+            getLogger().severe("Update checker failed.");
+            return;
+        }
+
+        if(currentVersion.equalsIgnoreCase(latestVersion)) {
+            Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Using the latest version(" + currentVersion + ")."));
+            Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Thank you for using my plugin ;)"));
+            return;
+        }
+        Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Using an outdated version(" + currentVersion + "). Newest version " + latestVersion));
+        Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Download: https://www.spigotmc.org/resources/dynamicseasons-%E2%8C%9B-enhance-your-survival-experience-%E2%9C%85.111362/"));
     }
 
     @Override
