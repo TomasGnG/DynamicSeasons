@@ -41,6 +41,8 @@ public class SeasonManager {
                     config.getAnimalGrowing(seasonName),
                     config.getMobBonusArmor(seasonName),
                     config.getMobMaxHealth(seasonName),
+                    config.getMobAttackDamage(seasonName),
+                    config.getPreventCropGrowing(seasonName),
                     config.getXPBonus(seasonName));
 
             seasons.put(seasonType, season);

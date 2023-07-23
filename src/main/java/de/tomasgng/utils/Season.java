@@ -2,8 +2,10 @@ package de.tomasgng.utils;
 
 import de.tomasgng.utils.enums.WeatherType;
 import org.bukkit.GameRule;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -23,6 +25,8 @@ public class Season {
     private final Map<EntityType, Integer> animalGrowing;
     private final Map<EntityType, Double> mobBonusArmor;
     private final Map<EntityType, Double> mobMaxHealth;
+    private final Map<EntityType, Double> mobAttackDamage;
+    private final List<Material> preventCropGrowing;
     private final int xpBonus;
 
     public Season(List<World> worlds,
@@ -34,6 +38,8 @@ public class Season {
                   Map<EntityType, Integer> animalGrowing,
                   Map<EntityType, Double> mobBonusArmor,
                   Map<EntityType, Double> mobMaxHealth,
+                  Map<EntityType, Double> mobAttackDamage,
+                  List<Material> preventCropGrowing,
                   int xpBonus) {
         this.worlds = worlds;
         this.weather = weather;
@@ -44,6 +50,8 @@ public class Season {
         this.animalGrowing = animalGrowing;
         this.mobBonusArmor = mobBonusArmor;
         this.mobMaxHealth = mobMaxHealth;
+        this.mobAttackDamage = mobAttackDamage;
+        this.preventCropGrowing = preventCropGrowing;
         this.xpBonus = xpBonus;
     }
 
@@ -75,6 +83,7 @@ public class Season {
             handleAnimalGrowing(entity);
             handleMobArmorBonus(entity);
             handleMobMaxHealth(entity);
+            handleMobAttackDamage(entity);
             return false;
         }
         int chanceToSpawn = animalSpawning.get(entity.getType());
@@ -85,6 +94,7 @@ public class Season {
         handleMobMovement(entity);
         handleMobArmorBonus(entity);
         handleMobMaxHealth(entity);
+        handleMobAttackDamage(entity);
         return false;
     }
 
@@ -125,6 +135,21 @@ public class Season {
         var maxHealth = mobMaxHealth.get(entity.getType());
         entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
         entity.setHealth(entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue());
+    }
+
+    private void handleMobAttackDamage(LivingEntity entity) {
+        if(!isValidWorld(entity.getWorld()))
+            return;
+        if(!mobAttackDamage.containsKey(entity.getType()))
+            return;
+        var attackDamage = mobAttackDamage.get(entity.getType());
+        entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(attackDamage);
+    }
+
+    public boolean handleCropGrowing(Block block) {
+        if(!isValidWorld(block.getWorld()))
+            return false;
+        return preventCropGrowing.contains(block.getType());
     }
 
     public int handleXPBonus(int xp) {

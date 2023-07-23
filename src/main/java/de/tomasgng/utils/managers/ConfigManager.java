@@ -5,6 +5,7 @@ import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
 import lombok.SneakyThrows;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -147,7 +148,12 @@ public class ConfigManager {
             cfg.set("spring.mobBonusArmor.CREEPER", 1.0);
             cfg.set("spring.mobMaxHealth.CREEPER", 25.0);
             cfg.set("spring.mobMaxHealth.ZOMBIE", 30.0);
+            cfg.set("spring.mobAttackDamage.ZOMBIE", 4.0);
+            cfg.set("spring.mobAttackDamage.SPIDER", 3.0);
+            cfg.set("spring.preventCropGrowing", List.of("POTATOES", "CARROTS"));
             cfg.set("spring.xpBonus", 20);
+            cfg.setComments("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
+            cfg.setComments("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
             cfg.setComments("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
             cfg.setComments("spring.mobMaxHealth", List.of("Customize the max health for mobs", "2 equals 1 heart | MAX is 20", "List of all mobs and their max health: https://pastebin.com/raw/5upq7HVr"));
             cfg.setComments("spring.animalGrowing", List.of("Customize the speed of animal growing", "Most baby mobs take 20 mins (24000 ticks) to grow up", "Here is a list of all breedable animals: https://pastebin.com/raw/zzUAc3XM", "Here is a tick calculator: https://mapmaking.fr/tick/", "IMPORTANT: 20 ticks = 1 second", "Format -> (ANIMAL_NAME): (TIME IN TICKS)"));
@@ -173,6 +179,9 @@ public class ConfigManager {
             cfg.set("summer.mobBonusArmor.CREEPER", 1.0);
             cfg.set("summer.mobMaxHealth.CREEPER", 25.0);
             cfg.set("summer.mobMaxHealth.ZOMBIE", 30.0);
+            cfg.set("summer.mobAttackDamage.ZOMBIE", 4.0);
+            cfg.set("summer.mobAttackDamage.SPIDER", 3.0);
+            cfg.set("summer.preventCropGrowing", List.of("POTATOES", "CARROTS"));
             cfg.set("summer.xpBonus", 20);
 
             cfg.set("fall.weather.enabled", true);
@@ -190,6 +199,9 @@ public class ConfigManager {
             cfg.set("fall.mobBonusArmor.CREEPER", 1.0);
             cfg.set("fall.mobMaxHealth.CREEPER", 25.0);
             cfg.set("fall.mobMaxHealth.ZOMBIE", 30.0);
+            cfg.set("fall.mobAttackDamage.ZOMBIE", 4.0);
+            cfg.set("fall.mobAttackDamage.SPIDER", 3.0);
+            cfg.set("fall.preventCropGrowing", List.of("POTATOES", "CARROTS"));
             cfg.set("fall.xpBonus", 20);
 
             cfg.set("winter.weather.enabled", true);
@@ -207,6 +219,9 @@ public class ConfigManager {
             cfg.set("winter.mobBonusArmor.CREEPER", 1.0);
             cfg.set("winter.mobMaxHealth.CREEPER", 25.0);
             cfg.set("winter.mobMaxHealth.ZOMBIE", 30.0);
+            cfg.set("winter.mobAttackDamage.ZOMBIE", 4.0);
+            cfg.set("winter.mobAttackDamage.SPIDER", 3.0);
+            cfg.set("winter.preventCropGrowing", List.of("POTATOES", "CARROTS"));
             cfg.set("winter.xpBonus", 20);
 
             save();
@@ -397,6 +412,37 @@ public class ConfigManager {
             }
         }
         return mobMaxHealth;
+    }
+
+    public Map<EntityType, Double> getMobAttackDamage(String season) {
+        Map<EntityType, Double> mobAttackDamage = new HashMap<>();
+        var sectionKeys = cfg.getConfigurationSection(season + ".mobAttackDamage").getKeys(false);
+        for (var mob : sectionKeys) {
+            try {
+                EntityType entityType = EntityType.valueOf(mob);
+                double attackDamage = cfg.getDouble(season + ".mobAttackDamage." + mob);
+                if(attackDamage <= 0)
+                    throw new NullPointerException();
+                mobAttackDamage.put(entityType, attackDamage);
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid mobAttackDamage '" + mob + "' for season: " + season);
+            }
+        }
+        return mobAttackDamage;
+    }
+
+    public List<Material> getPreventCropGrowing(String season) {
+        List<Material> preventCropGrowing = new ArrayList<>();
+        var rawpreventCropGrowingList = cfg.getStringList(season + ".preventCropGrowing");
+        for(var cropString : rawpreventCropGrowingList) {
+            try {
+                var cropType = Material.valueOf(cropString);
+                preventCropGrowing.add(cropType);
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid preventCropGrowing '" + cropString + "' for season " + season);
+            }
+        }
+        return preventCropGrowing;
     }
 
     public int getXPBonus(String season) {

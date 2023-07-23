@@ -1,10 +1,7 @@
 package de.tomasgng;
 
 import de.tomasgng.commands.DynamicSeasonsCMD;
-import de.tomasgng.listeners.CreatureSpawnListener;
-import de.tomasgng.listeners.PlayerPickupExperienceListener;
-import de.tomasgng.listeners.ThunderChangeListener;
-import de.tomasgng.listeners.WeatherChangeListener;
+import de.tomasgng.listeners.*;
 import de.tomasgng.placeholders.CurrentSeasonExpansion;
 import de.tomasgng.placeholders.DurationExpansion;
 import de.tomasgng.utils.bstats.Metrics;
@@ -35,19 +32,6 @@ public final class DynamicSeasons extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        /*
-        var entities = EntityType.values();
-        for(var entity : entities) {
-            if(!entity.isAlive() && !entity.isSpawnable()) {
-                System.out.println(entity.name());
-                continue;
-            }
-            if(Attributable.class.isAssignableFrom(entity.getEntityClass())) {
-                System.out.println(entity.name() + ": " + entity.getDefaultAttributes().getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue());
-            }
-        }
-         */
-
         instance = this;
         configManager = new ConfigManager();
         seasonManager = new SeasonManager();
@@ -55,8 +39,6 @@ public final class DynamicSeasons extends JavaPlugin {
 
         register();
         updateCheck();
-
-
     }
 
     private void register() {
@@ -66,6 +48,7 @@ public final class DynamicSeasons extends JavaPlugin {
         manager.registerEvents(new PlayerPickupExperienceListener(), this);
         manager.registerEvents(new ThunderChangeListener(), this);
         manager.registerEvents(new WeatherChangeListener(), this);
+        manager.registerEvents(new BlockGrowListener(), this);
 
         getCommand("dynamicseasons").setExecutor(new DynamicSeasonsCMD());
 
