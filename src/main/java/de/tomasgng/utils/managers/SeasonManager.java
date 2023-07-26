@@ -43,6 +43,7 @@ public class SeasonManager {
                     config.getMobMaxHealth(seasonName),
                     config.getMobAttackDamage(seasonName),
                     config.getPreventCropGrowing(seasonName),
+                    config.getPotionEffects(seasonName),
                     config.getXPBonus(seasonName));
 
             seasons.put(seasonType, season);
@@ -74,9 +75,11 @@ public class SeasonManager {
             Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
         if(messageManager.isSeasonChangeTitleEnabled())
             Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
+        currentSeasonInstance.stop();
         config.updateCurrentSeason(seasonTypes.get(nextInt));
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
+        currentSeasonInstance.start();
     }
 
     public void changeCurrentSeason(SeasonType seasonType) {
@@ -85,10 +88,12 @@ public class SeasonManager {
             Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonType));
         if(messageManager.isSeasonChangeTitleEnabled())
             Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonType));
+        currentSeasonInstance.stop();
         config.resetRemainingTime();
         config.updateCurrentSeason(seasonType);
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
+        currentSeasonInstance.start();
     }
 
     public String getFormattedDuration() {

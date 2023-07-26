@@ -1,6 +1,8 @@
 package de.tomasgng.utils;
 
+import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.WeatherType;
+import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -9,8 +11,11 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.potion.PotionEffect;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -27,6 +32,7 @@ public class Season {
     private final Map<EntityType, Double> mobMaxHealth;
     private final Map<EntityType, Double> mobAttackDamage;
     private final List<Material> preventCropGrowing;
+    private final List<PotionEffect> potionEffects;
     private final int xpBonus;
 
     public Season(List<World> worlds,
@@ -40,6 +46,7 @@ public class Season {
                   Map<EntityType, Double> mobMaxHealth,
                   Map<EntityType, Double> mobAttackDamage,
                   List<Material> preventCropGrowing,
+                  List<PotionEffect> potionEffects,
                   int xpBonus) {
         this.worlds = worlds;
         this.weather = weather;
@@ -52,6 +59,7 @@ public class Season {
         this.mobMaxHealth = mobMaxHealth;
         this.mobAttackDamage = mobAttackDamage;
         this.preventCropGrowing = preventCropGrowing;
+        this.potionEffects = potionEffects;
         this.xpBonus = xpBonus;
     }
 
@@ -63,6 +71,11 @@ public class Season {
         for(var world : worlds) {
             world.setGameRule(GameRule.RANDOM_TICK_SPEED, randomTickSpeed);
         }
+        startPotionEffectTimer();
+    }
+
+    public void stop() {
+        stopPotionEffectTimer();
     }
 
     public boolean handleWeatherUpdate(World world, WeatherType weatherTo) {
@@ -150,6 +163,26 @@ public class Season {
         if(!isValidWorld(block.getWorld()))
             return false;
         return preventCropGrowing.contains(block.getType());
+    }
+
+    private boolean stopPotionEffectTimer = false;
+
+    private void startPotionEffectTimer() {
+        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), bukkitTask -> {
+            if(stopPotionEffectTimer)
+                bukkitTask.cancel();
+            List<Player> players = new ArrayList<>();
+            for(var world : worlds) {
+                players.addAll(world.getPlayers());
+            }
+            players.forEach(player -> {
+                player.addPotionEffects(potionEffects);
+            });
+        }, 3*20L, 5 * 20L);
+    }
+
+    private void stopPotionEffectTimer() {
+        stopPotionEffectTimer = true;
     }
 
     public int handleXPBonus(int xp) {

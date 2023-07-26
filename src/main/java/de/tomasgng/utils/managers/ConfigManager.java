@@ -9,6 +9,8 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.io.File;
 import java.sql.Connection;
@@ -149,7 +151,10 @@ public class ConfigManager {
             cfg.set("spring.mobAttackDamage.ZOMBIE", 4.0);
             cfg.set("spring.mobAttackDamage.SPIDER", 3.0);
             cfg.set("spring.preventCropGrowing", List.of("POTATOES", "CARROTS"));
+            cfg.set("spring.potionEffects.SPEED", 1);
+            cfg.set("spring.potionEffects.REGENERATION", 1);
             cfg.set("spring.xpBonus", 20);
+            cfg.setComments("spring.potionEffects", List.of("Customize the potion effects for players", "List of all potion effects: https://pastebin.com/raw/KPh96Mf9"));
             cfg.setComments("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
             cfg.setComments("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
             cfg.setComments("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
@@ -180,6 +185,8 @@ public class ConfigManager {
             cfg.set("summer.mobAttackDamage.ZOMBIE", 4.0);
             cfg.set("summer.mobAttackDamage.SPIDER", 3.0);
             cfg.set("summer.preventCropGrowing", List.of("POTATOES", "CARROTS"));
+            cfg.set("summer.potionEffects.SPEED", 1);
+            cfg.set("summer.potionEffects.REGENERATION", 1);
             cfg.set("summer.xpBonus", 20);
 
             cfg.set("fall.weather.enabled", true);
@@ -200,6 +207,8 @@ public class ConfigManager {
             cfg.set("fall.mobAttackDamage.ZOMBIE", 4.0);
             cfg.set("fall.mobAttackDamage.SPIDER", 3.0);
             cfg.set("fall.preventCropGrowing", List.of("POTATOES", "CARROTS"));
+            cfg.set("fall.potionEffects.SPEED", 1);
+            cfg.set("fall.potionEffects.REGENERATION", 1);
             cfg.set("fall.xpBonus", 20);
 
             cfg.set("winter.weather.enabled", true);
@@ -220,6 +229,8 @@ public class ConfigManager {
             cfg.set("winter.mobAttackDamage.ZOMBIE", 4.0);
             cfg.set("winter.mobAttackDamage.SPIDER", 3.0);
             cfg.set("winter.preventCropGrowing", List.of("POTATOES", "CARROTS"));
+            cfg.set("winter.potionEffects.SPEED", 1);
+            cfg.set("winter.potionEffects.REGENERATION", 1);
             cfg.set("winter.xpBonus", 20);
 
             save();
@@ -252,8 +263,11 @@ public class ConfigManager {
         seasonConfigSections.put("mobAttackDamage.ZOMBIE", 4.0);
         seasonConfigSections.put("mobAttackDamage.SPIDER", 3.0);
         seasonConfigSections.put("preventCropGrowing", List.of("POTATOES", "CARROTS"));
+        seasonConfigSections.put("potionEffects.SPEED", 1);
+        seasonConfigSections.put("potionEffects.REGENERATION", 1);
         seasonConfigSections.put("xpBonus", 20);
 
+        configSectionComments.put("spring.potionEffects", List.of("Customize the potion effects for players", "List of all potion effects: https://pastebin.com/raw/KPh96Mf9"));
         configSectionComments.put("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
         configSectionComments.put("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
         configSectionComments.put("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
@@ -277,8 +291,13 @@ public class ConfigManager {
         }
         for(var entry : seasonConfigSections.entrySet()) {
             for(var season : List.of("spring", "summer", "fall", "winter")) {
-                if(cfg.isSet(season + "." + entry.getKey()))
-                    continue;
+                if(entry.getKey().contains(".")) {
+                    if(cfg.isSet(season + "." + entry.getKey().split("\\.")[0]))
+                        continue;
+                } else {
+                    if(cfg.isSet(season + "." + entry.getKey()))
+                        continue;
+                }
                 cfg.set(season + "." + entry.getKey(), entry.getValue());
                 if(!season.equalsIgnoreCase("spring"))
                     continue;
@@ -396,6 +415,10 @@ public class ConfigManager {
 
     public Map<EntityType, Integer> getAnimalSpawning(String season) {
         Map<EntityType, Integer> animalSpawning = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".animalSpawning") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid animalSpawning for season " + season);
+            return animalSpawning;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".animalSpawning").getKeys(false);
         for (var animal : sectionKeys) {
             try {
@@ -413,6 +436,10 @@ public class ConfigManager {
 
     public Map<EntityType, Double> getMobMovement(String season) {
         Map<EntityType, Double> mobMovement = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".mobMovement") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid mobMovement for season " + season);
+            return mobMovement;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobMovement").getKeys(false);
         for (var mob : sectionKeys) {
             try {
@@ -430,6 +457,10 @@ public class ConfigManager {
 
     public Map<EntityType, Integer> getAnimalGrowing(String season) {
         Map<EntityType, Integer> animalGrowing = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".animalGrowing") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid animalGrowing for season " + season);
+            return animalGrowing;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".animalGrowing").getKeys(false);
         for (var animal : sectionKeys) {
             try {
@@ -447,6 +478,10 @@ public class ConfigManager {
 
     public Map<EntityType, Double> getMobBonusArmor(String season) {
         Map<EntityType, Double> mobBonusArmor = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".mobBonusArmor") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid mobBonusArmor for season " + season);
+            return mobBonusArmor;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobBonusArmor").getKeys(false);
         for (var mob : sectionKeys) {
             try {
@@ -464,6 +499,10 @@ public class ConfigManager {
 
     public Map<EntityType, Double> getMobMaxHealth(String season) {
         Map<EntityType, Double> mobMaxHealth = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".mobMaxHealth") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid mobMaxHealth for season " + season);
+            return mobMaxHealth;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobMaxHealth").getKeys(false);
         for (var mob : sectionKeys) {
             try {
@@ -481,6 +520,10 @@ public class ConfigManager {
 
     public Map<EntityType, Double> getMobAttackDamage(String season) {
         Map<EntityType, Double> mobAttackDamage = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".mobAttackDamage") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid mobAttackDamage for season " + season);
+            return mobAttackDamage;
+        }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobAttackDamage").getKeys(false);
         for (var mob : sectionKeys) {
             try {
@@ -508,6 +551,27 @@ public class ConfigManager {
             }
         }
         return preventCropGrowing;
+    }
+
+    public List<PotionEffect> getPotionEffects(String season) {
+        List<PotionEffect> potionEffects = new ArrayList<>();
+        if(cfg.getConfigurationSection(season + ".potionEffects") == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid potionEffects for season " + season);
+            return potionEffects;
+        }
+        var keys = cfg.getConfigurationSection(season + ".potionEffects").getKeys(false);
+        for(var key : keys) {
+            try {
+                var type = PotionEffectType.getByName(key.toUpperCase());
+                var amplifier = cfg.getInt(season + ".potionEffects." + key)-1;
+                if(amplifier < 0)
+                    throw new Exception();
+                potionEffects.add(type.createEffect(10*20, amplifier));
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid potionEffects '" + key + "' for season " + season);
+            }
+        }
+        return potionEffects;
     }
 
     public int getXPBonus(String season) {
