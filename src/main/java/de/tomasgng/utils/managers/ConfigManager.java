@@ -13,10 +13,7 @@ import org.bukkit.entity.EntityType;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ConfigManager {
 
@@ -24,6 +21,12 @@ public class ConfigManager {
     private final File config = new File("plugins/DynamicSeasons/config.yml");
     private YamlConfiguration cfg = YamlConfiguration.loadConfiguration(config);
     private Connection connection;
+    private final String sqlSelectAllData = "SELECT * FROM data";
+    private final String sqlUpdateTime = "UPDATE data SET time=?";
+
+    private final Map<String, Object> generalConfigSections = new TreeMap<>();
+    private final Map<String, Object> seasonConfigSections = new TreeMap<>();
+    private final Map<String, List<String>> configSectionComments = new TreeMap<>();
 
     public ConfigManager() {
         createFiles();
@@ -37,79 +40,74 @@ public class ConfigManager {
         new File("plugins/DynamicSeasons").mkdirs();
         connection = DriverManager.getConnection("jdbc:sqlite:plugins/DynamicSeasons/data.db");
 
-        var statement = connection.prepareStatement(
-                "CREATE TABLE IF NOT EXISTS data (time BIGINT, season TEXT)");
-        statement.executeUpdate();
-        statement.close();
+        try (var statement = connection.prepareStatement(
+                "CREATE TABLE IF NOT EXISTS data (time BIGINT, season TEXT)")) {
+            statement.executeUpdate();
+        }
     }
 
     @SneakyThrows
     private void setupDatabase() {
-        var statement = connection.prepareStatement("SELECT * FROM data");
-        var rs = statement.executeQuery();
-        if(!rs.next()) {
-            var statement2 = connection.prepareStatement("INSERT INTO data VALUES (?, ?)");
+        try(var statement = connection.prepareStatement(sqlSelectAllData)) {
+            var rs = statement.executeQuery();
+            if(rs.next())
+                return;
+        }
+        try(var statement2 = connection.prepareStatement("INSERT INTO data VALUES (?, ?)")) {
             statement2.setInt(1, getDuration());
             statement2.setString(2, SeasonType.SPRING.name());
             statement2.executeUpdate();
-            statement2.close();
         }
-        rs.close();
-        statement.close();
     }
 
     @SneakyThrows
     public SeasonType getCurrentSeasonTypeFromDatabase() {
-        var statement = connection.prepareStatement("SELECT * FROM data");
-        var rs = statement.executeQuery();
-        rs.next();
-        SeasonType seasonType = SeasonType.valueOf(rs.getString("season"));
-        rs.close();
-        statement.close();
-        return seasonType;
+        try(var statement = connection.prepareStatement(sqlSelectAllData)) {
+            var rs = statement.executeQuery();
+            rs.next();
+            return SeasonType.valueOf(rs.getString("season"));
+        }
     }
 
     @SneakyThrows
     public int getRemainingTimeFromDatabase() {
-        var statement = connection.prepareStatement("SELECT * FROM data");
-        var rs = statement.executeQuery();
-        rs.next();
-        int remainingtime = rs.getInt("time");
-        rs.close();
-        statement.close();
-        return remainingtime;
+        try (var statement = connection.prepareStatement(sqlSelectAllData)) {
+            var rs = statement.executeQuery();
+            rs.next();
+            return rs.getInt("time");
+        }
     }
 
     @SneakyThrows
     public void decreaseRemainingTime() {
-        var statement = connection.prepareStatement("UPDATE data SET time=?");
-        statement.setInt(1, getRemainingTimeFromDatabase()-1);
-        statement.executeUpdate();
-        statement.close();
+        try(var statement = connection.prepareStatement(sqlUpdateTime)) {
+            statement.setInt(1, getRemainingTimeFromDatabase()-1);
+            statement.executeUpdate();
+        }
     }
 
     @SneakyThrows
     public void updateCurrentSeason(SeasonType newSeason) {
-        var statement = connection.prepareStatement("UPDATE data SET season=?");
-        statement.setString(1, newSeason.name());
-        statement.executeUpdate();
-        statement.close();
+        try(var statement = connection.prepareStatement("UPDATE data SET season=?")) {
+            statement.setString(1, newSeason.name());
+            statement.executeUpdate();
+        }
     }
 
     @SneakyThrows
     public void resetRemainingTime() {
-        var statement = connection.prepareStatement("UPDATE data SET time=?");
-        statement.setInt(1, getDuration());
-        statement.executeUpdate();
-        statement.close();
+        try(var statement = connection.prepareStatement(sqlUpdateTime)) {
+            statement.setInt(1, getDuration());
+            statement.executeUpdate();
+        }
     }
 
     @SneakyThrows
     public void setRemainingTime(int newRemainingTime) {
-        var statement = connection.prepareStatement("UPDATE data SET time=?");
-        statement.setInt(1, newRemainingTime);
-        statement.executeUpdate();
-        statement.close();
+        try(var statement = connection.prepareStatement(sqlUpdateTime)) {
+            statement.setInt(1, newRemainingTime);
+            statement.executeUpdate();
+        }
     }
     //endregion
 
@@ -226,6 +224,73 @@ public class ConfigManager {
 
             save();
         }
+        generalConfigSections.put("season_duration", 300);
+        generalConfigSections.put("worlds", List.of("world"));
+        generalConfigSections.put("placeholders.duration.placeholderName", "duration");
+        generalConfigSections.put("placeholders.duration.format", "HH:mm:ss");
+        generalConfigSections.put("placeholders.currentSeason.placeholderName", "currentSeason");
+        generalConfigSections.put("placeholders.currentSeason.text.spring", "Spring");
+        generalConfigSections.put("placeholders.currentSeason.text.summer", "Summer");
+        generalConfigSections.put("placeholders.currentSeason.text.fall", "Fall");
+        generalConfigSections.put("placeholders.currentSeason.text.winter", "Winter");
+
+        seasonConfigSections.put("weather.enabled", true);
+        seasonConfigSections.put("weather.type.clear", true);
+        seasonConfigSections.put("weather.type.storm", true);
+        seasonConfigSections.put("weather.type.thunder", false);
+        seasonConfigSections.put("randomTickSpeed", 4);
+        seasonConfigSections.put("animalSpawning.SHEEP", 80);
+        seasonConfigSections.put("animalSpawning.CHICKEN", 40);
+        seasonConfigSections.put("mobMovement.ZOMBIE", 0.3);
+        seasonConfigSections.put("mobMovement.SPIDER", 0.4);
+        seasonConfigSections.put("animalGrowing.COW", 6000);
+        seasonConfigSections.put("animalGrowing.SHEEP", 3600);
+        seasonConfigSections.put("mobBonusArmor.ZOMBIE", 2.5);
+        seasonConfigSections.put("mobBonusArmor.CREEPER", 1.0);
+        seasonConfigSections.put("mobMaxHealth.CREEPER", 25.0);
+        seasonConfigSections.put("mobMaxHealth.ZOMBIE", 30.0);
+        seasonConfigSections.put("mobAttackDamage.ZOMBIE", 4.0);
+        seasonConfigSections.put("mobAttackDamage.SPIDER", 3.0);
+        seasonConfigSections.put("preventCropGrowing", List.of("POTATOES", "CARROTS"));
+        seasonConfigSections.put("xpBonus", 20);
+
+        configSectionComments.put("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
+        configSectionComments.put("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
+        configSectionComments.put("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
+        configSectionComments.put("spring.mobMaxHealth", List.of("Customize the max health for mobs", "2 equals 1 heart | MAX is 20", "List of all mobs and their max health: https://pastebin.com/raw/5upq7HVr"));
+        configSectionComments.put("spring.animalGrowing", List.of("Customize the speed of animal growing", "Most baby mobs take 20 mins (24000 ticks) to grow up", "Here is a list of all breedable animals: https://pastebin.com/raw/zzUAc3XM", "Here is a tick calculator: https://mapmaking.fr/tick/", "IMPORTANT: 20 ticks = 1 second", "Format -> (ANIMAL_NAME): (TIME IN TICKS)"));
+        configSectionComments.put("spring.mobMovement", List.of("Customize the movement speed of mobs", "Here is a list of all mobs and their default movement speed: https://pastebin.com/raw/2WaGi20Z", "Format -> (MOB_NAME): (SPEED)"));
+        configSectionComments.put("spring.animalSpawning", List.of("The probability of an animal to spawn. 1-100%", "Here is a list of all animals: https://pastebin.com/raw/Tf3mMGg6", "Format -> (MOB_NAME): (PERCENT)"));
+        configSectionComments.put("spring.randomTickSpeed", List.of("The growth speed of plants etc. default value -> 3.", "higher -> faster | large values can cause server lag!", "Heres a list what will be effected by the change: https://minecraft.fandom.com/wiki/Tick#:~:text=Most%20blocks%20ignore%20this%20tick%2C%20but%20some%20use%20it%20to%20do%20something%3A"));
+        configSectionComments.put("spring.weather", List.of("Customize the weather for the season"));
+        configSectionComments.put("spring.weather.type", List.of("Customize the allowed weather types"));
+        configSectionComments.put("spring.xpBonus", List.of("The bonus xp you get when picking up xp (in percent)", "e.g. if you set 20 then the player will get 20% more xp. (20% of the picked up xp)"));
+
+        fixMissingSections();
+    }
+
+    private void fixMissingSections() {
+        reload();
+        for(var entry : generalConfigSections.entrySet()) {
+            if(!cfg.isSet(entry.getKey()))
+                cfg.set(entry.getKey(), entry.getValue());
+        }
+        for(var entry : seasonConfigSections.entrySet()) {
+            for(var season : List.of("spring", "summer", "fall", "winter")) {
+                if(cfg.isSet(season + "." + entry.getKey()))
+                    continue;
+                cfg.set(season + "." + entry.getKey(), entry.getValue());
+                if(!season.equalsIgnoreCase("spring"))
+                    continue;
+                for (var cEntry : configSectionComments.entrySet()) {
+                    if((season + "." + entry.getKey()).startsWith(cEntry.getKey())) {
+                        cfg.setComments(cEntry.getKey(), cEntry.getValue());
+                    }
+
+                }
+            }
+        }
+        save();
     }
 
     @SneakyThrows
@@ -295,7 +360,7 @@ public class ConfigManager {
             }
             worlds.add(Bukkit.getWorld(worldName));
         }
-        if(worlds.size() == 0) {
+        if(worlds.isEmpty()) {
             if(!alreadyPrintedInvalidWorlds) {
                 DynamicSeasons.getInstance().getLogger().severe("0 worlds loaded. Disabling plugin...");
                 DynamicSeasons.getInstance().getLogger().severe("Add worlds to your config.yml!");
