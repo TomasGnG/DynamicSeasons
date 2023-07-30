@@ -168,6 +168,7 @@ public class Season {
     private boolean stopPotionEffectTimer = false;
 
     private void startPotionEffectTimer() {
+        stopPotionEffectTimer = false;
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), bukkitTask -> {
             if(stopPotionEffectTimer)
                 bukkitTask.cancel();
