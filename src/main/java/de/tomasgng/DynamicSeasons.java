@@ -49,6 +49,8 @@ public final class DynamicSeasons extends JavaPlugin {
         manager.registerEvents(new ThunderChangeListener(), this);
         manager.registerEvents(new WeatherChangeListener(), this);
         manager.registerEvents(new BlockGrowListener(), this);
+        manager.registerEvents(new BlockSpreadListener(), this);
+        manager.registerEvents(new StructureGrowListener(), this);
 
         getCommand("dynamicseasons").setExecutor(new DynamicSeasonsCMD());
 

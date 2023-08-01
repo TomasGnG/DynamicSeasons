@@ -7,7 +7,6 @@ import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -159,10 +158,10 @@ public class Season {
         entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(attackDamage);
     }
 
-    public boolean handleCropGrowing(Block block) {
-        if(!isValidWorld(block.getWorld()))
+    public boolean handleCropGrowing(Material material, World world) {
+        if(!isValidWorld(world))
             return false;
-        return preventCropGrowing.contains(block.getType());
+        return preventCropGrowing.contains(material);
     }
 
     private boolean stopPotionEffectTimer = false;
