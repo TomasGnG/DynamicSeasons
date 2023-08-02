@@ -6,7 +6,7 @@
 
     <groupId>de.tomasgng</groupId>
     <artifactId>DynamicSeasons</artifactId>
-    <version>1.6</version>
+    <version>1.7</version>
     <packaging>jar</packaging>
 
     <name>DynamicSeasons</name>
@@ -85,6 +85,12 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.11.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

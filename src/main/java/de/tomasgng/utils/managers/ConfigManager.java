@@ -128,6 +128,8 @@ public class ConfigManager {
             cfg.set("placeholders.currentSeason.text.summer", "Summer");
             cfg.set("placeholders.currentSeason.text.fall", "Fall");
             cfg.set("placeholders.currentSeason.text.winter", "Winter");
+            cfg.set("updater", true);
+            cfg.setComments("updater", List.of("Should this plugin update itself if a new version was released?"));
             cfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
             cfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
             cfg.setComments("season_duration", List.of("Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
@@ -244,6 +246,7 @@ public class ConfigManager {
         generalConfigSections.put("placeholders.currentSeason.text.summer", "Summer");
         generalConfigSections.put("placeholders.currentSeason.text.fall", "Fall");
         generalConfigSections.put("placeholders.currentSeason.text.winter", "Winter");
+        generalConfigSections.put("updater", true);
 
         seasonConfigSections.put("weather.enabled", true);
         seasonConfigSections.put("weather.type.clear", true);
@@ -279,6 +282,7 @@ public class ConfigManager {
         configSectionComments.put("spring.weather", List.of("Customize the weather for the season"));
         configSectionComments.put("spring.weather.type", List.of("Customize the allowed weather types"));
         configSectionComments.put("spring.xpBonus", List.of("The bonus xp you get when picking up xp (in percent)", "e.g. if you set 20 then the player will get 20% more xp. (20% of the picked up xp)"));
+        configSectionComments.put("updater", List.of("Should this plugin update itself if a new version was released?"));
 
         fixMissingSections();
     }
@@ -286,8 +290,11 @@ public class ConfigManager {
     private void fixMissingSections() {
         reload();
         for(var entry : generalConfigSections.entrySet()) {
-            if(!cfg.isSet(entry.getKey()))
+            if(!cfg.isSet(entry.getKey())) {
                 cfg.set(entry.getKey(), entry.getValue());
+                if(configSectionComments.containsKey(entry.getKey()))
+                    cfg.setComments(entry.getKey(), configSectionComments.get(entry.getKey()));
+            }
         }
         for(var entry : seasonConfigSections.entrySet()) {
             for(var season : List.of("spring", "summer", "fall", "winter")) {
@@ -388,6 +395,10 @@ public class ConfigManager {
         }
         alreadyPrintedInvalidWorlds = true;
         return worlds;
+    }
+
+    public boolean updaterIsActive() {
+        return cfg.getBoolean("updater");
     }
 
     public boolean getWeather(String season) {
