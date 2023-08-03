@@ -54,6 +54,7 @@ public final class DynamicSeasons extends JavaPlugin {
         manager.registerEvents(new BlockGrowListener(), this);
         manager.registerEvents(new BlockSpreadListener(), this);
         manager.registerEvents(new StructureGrowListener(), this);
+        manager.registerEvents(new EntityDeathListener(), this);
 
         getCommand("dynamicseasons").setExecutor(new DynamicSeasonsCMD());
 

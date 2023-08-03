@@ -2,6 +2,7 @@ package de.tomasgng.utils;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.WeatherType;
+import de.tomasgng.utils.managers.LootDrop;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.Material;
@@ -32,6 +33,7 @@ public class Season {
     private final Map<EntityType, Double> mobAttackDamage;
     private final List<Material> preventCropGrowing;
     private final List<PotionEffect> potionEffects;
+    private final List<LootDrop> lootDrops;
     private final int xpBonus;
 
     public Season(List<World> worlds,
@@ -46,6 +48,7 @@ public class Season {
                   Map<EntityType, Double> mobAttackDamage,
                   List<Material> preventCropGrowing,
                   List<PotionEffect> potionEffects,
+                  List<LootDrop> lootDrops,
                   int xpBonus) {
         this.worlds = worlds;
         this.weather = weather;
@@ -59,6 +62,7 @@ public class Season {
         this.mobAttackDamage = mobAttackDamage;
         this.preventCropGrowing = preventCropGrowing;
         this.potionEffects = potionEffects;
+        this.lootDrops = lootDrops;
         this.xpBonus = xpBonus;
     }
 
@@ -100,7 +104,7 @@ public class Season {
         }
         int chanceToSpawn = animalSpawning.get(entity.getType());
         int randomChance = new Random().nextInt(0, 101);
-        if(randomChance > chanceToSpawn)
+        if(randomChance <= chanceToSpawn)
             return true;
         handleAnimalGrowing(entity);
         handleMobMovement(entity);
@@ -189,4 +193,26 @@ public class Season {
         return (int) Math.round(xp*(1 + (double) xpBonus/100));
     }
 
+    public void handleLootDrops(LivingEntity entity) {
+        if(!isValidWorld(entity.getWorld()))
+            return;
+        if(entity.getKiller() == null)
+            return;
+        LootDrop lootdrop = null;
+        for(var loot : lootDrops) {
+            if(loot.getEntity().equals(entity.getType()))
+                lootdrop = loot;
+        }
+        if(lootdrop == null)
+            return;
+
+        var rnd = new Random();
+        var world = entity.getWorld();
+        var loc = entity.getLocation();
+        for(var entry : lootdrop.getItemStacks().entrySet()) {
+            int randomChance = rnd.nextInt(1, 101);
+            if(randomChance <= entry.getValue())
+                world.dropItemNaturally(loc, entry.getKey());
+        }
+    }
 }

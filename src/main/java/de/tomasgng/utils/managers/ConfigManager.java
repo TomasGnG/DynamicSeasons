@@ -1,14 +1,19 @@
 package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
+import de.tomasgng.utils.ItemBuilder;
 import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
 import lombok.SneakyThrows;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -16,6 +21,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class ConfigManager {
 
@@ -25,13 +31,11 @@ public class ConfigManager {
     private Connection connection;
     private final String sqlSelectAllData = "SELECT * FROM data";
     private final String sqlUpdateTime = "UPDATE data SET time=?";
-
-    private final Map<String, Object> generalConfigSections = new TreeMap<>();
-    private final Map<String, Object> seasonConfigSections = new TreeMap<>();
-    private final Map<String, List<String>> configSectionComments = new TreeMap<>();
+    private final Logger logger = DynamicSeasons.getInstance().getLogger();
 
     public ConfigManager() {
         createFiles();
+        fixMissingSections();
         createConnection();
         setupDatabase();
     }
@@ -119,6 +123,7 @@ public class ConfigManager {
         if(!config.exists()) {
             config.createNewFile();
 
+            cfg.set("CONFIG_VERSION", DynamicSeasons.getInstance().getPluginMeta().getVersion());
             cfg.set("season_duration", 300);
             cfg.set("worlds", List.of("world"));
             cfg.set("placeholders.duration.placeholderName", "duration");
@@ -129,6 +134,7 @@ public class ConfigManager {
             cfg.set("placeholders.currentSeason.text.fall", "Fall");
             cfg.set("placeholders.currentSeason.text.winter", "Winter");
             cfg.set("updater", true);
+            cfg.setComments("CONFIG_VERSION", List.of("DONT CHANGE THIS! Simply ignore it :)"));
             cfg.setComments("updater", List.of("Should this plugin update itself if a new version was released?"));
             cfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
             cfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
@@ -155,7 +161,22 @@ public class ConfigManager {
             cfg.set("spring.preventCropGrowing", List.of("POTATOES", "CARROTS"));
             cfg.set("spring.potionEffects.SPEED", 1);
             cfg.set("spring.potionEffects.REGENERATION", 1);
+            cfg.set("spring.lootDrops.ZOMBIE.1.displayname", "<yellow>Mysterious Sword");
+            cfg.set("spring.lootDrops.ZOMBIE.1.lore", List.of("<gray>This sword is", "<gray>veeery mysterious!"));
+            cfg.set("spring.lootDrops.ZOMBIE.1.material", Material.DIAMOND_SWORD.name());
+            cfg.set("spring.lootDrops.ZOMBIE.1.amount", 1);
+            cfg.set("spring.lootDrops.ZOMBIE.1.dropChance", 10);
+            cfg.set("spring.lootDrops.ZOMBIE.1.enchantments.sharpness", 2);
             cfg.set("spring.xpBonus", 20);
+            cfg.setComments("spring.lootDrops", List.of("Here you can customize the custom loot from mobs."));
+            cfg.setComments("spring.lootDrops.ZOMBIE", List.of("Name of the mob"));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1", List.of("You can name this whatever you like as this isnt that important :)"));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.displayname", List.of("Displayname of the item in MiniMessage format. "));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.lore", List.of("Item Lore in MiniMessage format."));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.material", List.of("Material of the item"));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.amount", List.of("The amount of the item"));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.dropChance", List.of("The chance of this item to drop (0-100) in percent"));
+            cfg.setComments("spring.lootDrops.ZOMBIE.1.enchantments", List.of("List of all Enchantments: https://pastebin.com/raw/hyRbnm2q", "Format -> (enchantment): (level)"));
             cfg.setComments("spring.potionEffects", List.of("Customize the potion effects for players", "List of all potion effects: https://pastebin.com/raw/KPh96Mf9"));
             cfg.setComments("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
             cfg.setComments("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
@@ -169,152 +190,55 @@ public class ConfigManager {
             cfg.setComments("spring.weather.type", List.of("Customize the allowed weather types"));
             cfg.setComments("spring.xpBonus", List.of("The bonus xp you get when picking up xp (in percent)", "e.g. if you set 20 then the player will get 20% more xp. (20% of the picked up xp)"));
 
-            cfg.set("summer.weather.enabled", true);
-            cfg.set("summer.weather.type.clear", true);
-            cfg.set("summer.weather.type.storm", true);
-            cfg.set("summer.weather.type.thunder", false);
-            cfg.set("summer.randomTickSpeed", 4);
-            cfg.set("summer.animalSpawning.SHEEP", 80);
-            cfg.set("summer.animalSpawning.CHICKEN", 40);
-            cfg.set("summer.mobMovement.ZOMBIE", 0.3);
-            cfg.set("summer.mobMovement.SPIDER", 0.4);
-            cfg.set("summer.animalGrowing.COW", 6000);
-            cfg.set("summer.animalGrowing.SHEEP", 3600);
-            cfg.set("summer.mobBonusArmor.ZOMBIE", 2.5);
-            cfg.set("summer.mobBonusArmor.CREEPER", 1.0);
-            cfg.set("summer.mobMaxHealth.CREEPER", 25.0);
-            cfg.set("summer.mobMaxHealth.ZOMBIE", 30.0);
-            cfg.set("summer.mobAttackDamage.ZOMBIE", 4.0);
-            cfg.set("summer.mobAttackDamage.SPIDER", 3.0);
-            cfg.set("summer.preventCropGrowing", List.of("POTATOES", "CARROTS"));
-            cfg.set("summer.potionEffects.SPEED", 1);
-            cfg.set("summer.potionEffects.REGENERATION", 1);
-            cfg.set("summer.xpBonus", 20);
-
-            cfg.set("fall.weather.enabled", true);
-            cfg.set("fall.weather.type.clear", true);
-            cfg.set("fall.weather.type.storm", true);
-            cfg.set("fall.weather.type.thunder", false);
-            cfg.set("fall.randomTickSpeed", 4);
-            cfg.set("fall.animalSpawning.SHEEP", 80);
-            cfg.set("fall.animalSpawning.CHICKEN", 40);
-            cfg.set("fall.mobMovement.ZOMBIE", 0.3);
-            cfg.set("fall.mobMovement.SPIDER", 0.4);
-            cfg.set("fall.animalGrowing.COW", 6000);
-            cfg.set("fall.animalGrowing.SHEEP", 3600);
-            cfg.set("fall.mobBonusArmor.ZOMBIE", 2.5);
-            cfg.set("fall.mobBonusArmor.CREEPER", 1.0);
-            cfg.set("fall.mobMaxHealth.CREEPER", 25.0);
-            cfg.set("fall.mobMaxHealth.ZOMBIE", 30.0);
-            cfg.set("fall.mobAttackDamage.ZOMBIE", 4.0);
-            cfg.set("fall.mobAttackDamage.SPIDER", 3.0);
-            cfg.set("fall.preventCropGrowing", List.of("POTATOES", "CARROTS"));
-            cfg.set("fall.potionEffects.SPEED", 1);
-            cfg.set("fall.potionEffects.REGENERATION", 1);
-            cfg.set("fall.xpBonus", 20);
-
-            cfg.set("winter.weather.enabled", true);
-            cfg.set("winter.weather.type.clear", true);
-            cfg.set("winter.weather.type.storm", true);
-            cfg.set("winter.weather.type.thunder", false);
-            cfg.set("winter.randomTickSpeed", 4);
-            cfg.set("winter.animalSpawning.SHEEP", 80);
-            cfg.set("winter.animalSpawning.CHICKEN", 40);
-            cfg.set("winter.mobMovement.ZOMBIE", 0.3);
-            cfg.set("winter.mobMovement.SPIDER", 0.4);
-            cfg.set("winter.animalGrowing.COW", 6000);
-            cfg.set("winter.animalGrowing.SHEEP", 3600);
-            cfg.set("winter.mobBonusArmor.ZOMBIE", 2.5);
-            cfg.set("winter.mobBonusArmor.CREEPER", 1.0);
-            cfg.set("winter.mobMaxHealth.CREEPER", 25.0);
-            cfg.set("winter.mobMaxHealth.ZOMBIE", 30.0);
-            cfg.set("winter.mobAttackDamage.ZOMBIE", 4.0);
-            cfg.set("winter.mobAttackDamage.SPIDER", 3.0);
-            cfg.set("winter.preventCropGrowing", List.of("POTATOES", "CARROTS"));
-            cfg.set("winter.potionEffects.SPEED", 1);
-            cfg.set("winter.potionEffects.REGENERATION", 1);
-            cfg.set("winter.xpBonus", 20);
+            for(var season : List.of("summer", "fall", "winter")) {
+                cfg.set(season + ".weather.enabled", true);
+                cfg.set(season + ".weather.type.clear", true);
+                cfg.set(season + ".weather.type.storm", true);
+                cfg.set(season + ".weather.type.thunder", false);
+                cfg.set(season + ".randomTickSpeed", 4);
+                cfg.set(season + ".animalSpawning.SHEEP", 80);
+                cfg.set(season + ".animalSpawning.CHICKEN", 40);
+                cfg.set(season + ".mobMovement.ZOMBIE", 0.3);
+                cfg.set(season + ".mobMovement.SPIDER", 0.4);
+                cfg.set(season + ".animalGrowing.COW", 6000);
+                cfg.set(season + ".animalGrowing.SHEEP", 3600);
+                cfg.set(season + ".mobBonusArmor.ZOMBIE", 2.5);
+                cfg.set(season + ".mobBonusArmor.CREEPER", 1.0);
+                cfg.set(season + ".mobMaxHealth.CREEPER", 25.0);
+                cfg.set(season + ".mobMaxHealth.ZOMBIE", 30.0);
+                cfg.set(season + ".mobAttackDamage.ZOMBIE", 4.0);
+                cfg.set(season + ".mobAttackDamage.SPIDER", 3.0);
+                cfg.set(season + ".preventCropGrowing", List.of("POTATOES", "CARROTS"));
+                cfg.set(season + ".potionEffects.SPEED", 1);
+                cfg.set(season + ".potionEffects.REGENERATION", 1);
+                cfg.set(season + ".lootDrops.ZOMBIE.1.displayname", "<yellow>Mysterious Sword");
+                cfg.set(season + ".lootDrops.ZOMBIE.1.lore", List.of("<gray>This sword is", "<gray>veeery mysterious!"));
+                cfg.set(season + ".lootDrops.ZOMBIE.1.material", Material.DIAMOND_SWORD.name());
+                cfg.set(season + ".lootDrops.ZOMBIE.1.amount", 1);
+                cfg.set(season + ".lootDrops.ZOMBIE.1.dropChance", 10);
+                cfg.set(season + ".lootDrops.ZOMBIE.1.enchantments.sharpness", 2);
+                cfg.set(season + ".xpBonus", 20);
+            }
 
             save();
         }
-        generalConfigSections.put("season_duration", 300);
-        generalConfigSections.put("worlds", List.of("world"));
-        generalConfigSections.put("placeholders.duration.placeholderName", "duration");
-        generalConfigSections.put("placeholders.duration.format", "HH:mm:ss");
-        generalConfigSections.put("placeholders.currentSeason.placeholderName", "currentSeason");
-        generalConfigSections.put("placeholders.currentSeason.text.spring", "Spring");
-        generalConfigSections.put("placeholders.currentSeason.text.summer", "Summer");
-        generalConfigSections.put("placeholders.currentSeason.text.fall", "Fall");
-        generalConfigSections.put("placeholders.currentSeason.text.winter", "Winter");
-        generalConfigSections.put("updater", true);
-
-        seasonConfigSections.put("weather.enabled", true);
-        seasonConfigSections.put("weather.type.clear", true);
-        seasonConfigSections.put("weather.type.storm", true);
-        seasonConfigSections.put("weather.type.thunder", false);
-        seasonConfigSections.put("randomTickSpeed", 4);
-        seasonConfigSections.put("animalSpawning.SHEEP", 80);
-        seasonConfigSections.put("animalSpawning.CHICKEN", 40);
-        seasonConfigSections.put("mobMovement.ZOMBIE", 0.3);
-        seasonConfigSections.put("mobMovement.SPIDER", 0.4);
-        seasonConfigSections.put("animalGrowing.COW", 6000);
-        seasonConfigSections.put("animalGrowing.SHEEP", 3600);
-        seasonConfigSections.put("mobBonusArmor.ZOMBIE", 2.5);
-        seasonConfigSections.put("mobBonusArmor.CREEPER", 1.0);
-        seasonConfigSections.put("mobMaxHealth.CREEPER", 25.0);
-        seasonConfigSections.put("mobMaxHealth.ZOMBIE", 30.0);
-        seasonConfigSections.put("mobAttackDamage.ZOMBIE", 4.0);
-        seasonConfigSections.put("mobAttackDamage.SPIDER", 3.0);
-        seasonConfigSections.put("preventCropGrowing", List.of("POTATOES", "CARROTS"));
-        seasonConfigSections.put("potionEffects.SPEED", 1);
-        seasonConfigSections.put("potionEffects.REGENERATION", 1);
-        seasonConfigSections.put("xpBonus", 20);
-
-        configSectionComments.put("spring.potionEffects", List.of("Customize the potion effects for players", "List of all potion effects: https://pastebin.com/raw/KPh96Mf9"));
-        configSectionComments.put("spring.preventCropGrowing", List.of("Customize the crops that are not allowed to grow", "List of all crops: https://minecraft.fandom.com/wiki/Crops"));
-        configSectionComments.put("spring.mobAttackDamage", List.of("Customize the attack damage for mobs", "List of all mobs and their attack damage: https://pastebin.com/raw/XnC3kNXi"));
-        configSectionComments.put("spring.mobBonusArmor", List.of("Customize the bonus armor for mobs", "2 equals 1 Armor-slot | MAX is 20"));
-        configSectionComments.put("spring.mobMaxHealth", List.of("Customize the max health for mobs", "2 equals 1 heart | MAX is 20", "List of all mobs and their max health: https://pastebin.com/raw/5upq7HVr"));
-        configSectionComments.put("spring.animalGrowing", List.of("Customize the speed of animal growing", "Most baby mobs take 20 mins (24000 ticks) to grow up", "Here is a list of all breedable animals: https://pastebin.com/raw/zzUAc3XM", "Here is a tick calculator: https://mapmaking.fr/tick/", "IMPORTANT: 20 ticks = 1 second", "Format -> (ANIMAL_NAME): (TIME IN TICKS)"));
-        configSectionComments.put("spring.mobMovement", List.of("Customize the movement speed of mobs", "Here is a list of all mobs and their default movement speed: https://pastebin.com/raw/2WaGi20Z", "Format -> (MOB_NAME): (SPEED)"));
-        configSectionComments.put("spring.animalSpawning", List.of("The probability of an animal to spawn. 1-100%", "Here is a list of all animals: https://pastebin.com/raw/Tf3mMGg6", "Format -> (MOB_NAME): (PERCENT)"));
-        configSectionComments.put("spring.randomTickSpeed", List.of("The growth speed of plants etc. default value -> 3.", "higher -> faster | large values can cause server lag!", "Heres a list what will be effected by the change: https://minecraft.fandom.com/wiki/Tick#:~:text=Most%20blocks%20ignore%20this%20tick%2C%20but%20some%20use%20it%20to%20do%20something%3A"));
-        configSectionComments.put("spring.weather", List.of("Customize the weather for the season"));
-        configSectionComments.put("spring.weather.type", List.of("Customize the allowed weather types"));
-        configSectionComments.put("spring.xpBonus", List.of("The bonus xp you get when picking up xp (in percent)", "e.g. if you set 20 then the player will get 20% more xp. (20% of the picked up xp)"));
-        configSectionComments.put("updater", List.of("Should this plugin update itself if a new version was released?"));
-
-        fixMissingSections();
     }
 
     private void fixMissingSections() {
-        reload();
-        for(var entry : generalConfigSections.entrySet()) {
-            if(!cfg.isSet(entry.getKey())) {
-                cfg.set(entry.getKey(), entry.getValue());
-                if(configSectionComments.containsKey(entry.getKey()))
-                    cfg.setComments(entry.getKey(), configSectionComments.get(entry.getKey()));
-            }
+        if(cfg.isSet("CONFIG_VERSION") && cfg.getString("CONFIG_VERSION").equalsIgnoreCase(DynamicSeasons.getInstance().getPluginMeta().getVersion()))
+            return;
+        Map<String, Object> oldValues = new LinkedHashMap<>();
+        for(var key : cfg.getKeys(true)) {
+            if(key.equalsIgnoreCase("CONFIG_VERSION"))
+                continue;
+            oldValues.put(key, cfg.get(key));
         }
-        for(var entry : seasonConfigSections.entrySet()) {
-            for(var season : List.of("spring", "summer", "fall", "winter")) {
-                if(entry.getKey().contains(".")) {
-                    if(cfg.isSet(season + "." + entry.getKey().split("\\.")[0]))
-                        continue;
-                } else {
-                    if(cfg.isSet(season + "." + entry.getKey()))
-                        continue;
-                }
-                cfg.set(season + "." + entry.getKey(), entry.getValue());
-                if(!season.equalsIgnoreCase("spring"))
-                    continue;
-                for (var cEntry : configSectionComments.entrySet()) {
-                    if((season + "." + entry.getKey()).startsWith(cEntry.getKey())) {
-                        cfg.setComments(cEntry.getKey(), cEntry.getValue());
-                    }
 
-                }
-            }
+        config.delete();
+        createFiles();
+
+        for(var entry : oldValues.entrySet()) {
+            cfg.set(entry.getKey(), entry.getValue());
         }
         save();
     }
@@ -332,7 +256,7 @@ public class ConfigManager {
     public String getDurationPlaceholderName() {
         var name = cfg.getString("placeholders.duration.placeholderName");
         if(name == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid duration placeholderName. Using default name -> duration");
+            logger.severe("Invalid duration placeholderName. Using default name -> duration");
             return "duration";
         }
         return name;
@@ -349,7 +273,7 @@ public class ConfigManager {
     public String getCurrentSeasonPlaceholderName() {
         var name = cfg.getString("placeholders.currentSeason.placeholderName");
         if(name == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid currentSeason placeholderName. Using default name -> currentSeason");
+            logger.severe("Invalid currentSeason placeholderName. Using default name -> currentSeason");
             return "currentSeason";
         }
         return name;
@@ -358,7 +282,7 @@ public class ConfigManager {
     public String getCurrentSeasonText(SeasonType seasonType) {
         var text = cfg.getString("placeholders.currentSeason.text."+seasonType.name().toLowerCase());
         if(text == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid currentSeason text for " + seasonType.name().toLowerCase() + ". Using default text -> " + seasonType.name());
+            logger.severe("Invalid currentSeason text for " + seasonType.name().toLowerCase() + ". Using default text -> " + seasonType.name());
             return seasonType.name();
         }
         return text;
@@ -367,7 +291,7 @@ public class ConfigManager {
     public int getDuration() {
         int duration = cfg.getInt("season_duration");
         if(duration < 10) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid season_duration. Using default value -> 300!");
+            logger.severe("Invalid season_duration. Using default value -> 300!");
             return 300;
         }
         return duration;
@@ -381,15 +305,15 @@ public class ConfigManager {
         for(var worldName : section) {
             if(Bukkit.getWorld(worldName) == null) {
                 if(!alreadyPrintedInvalidWorlds)
-                    DynamicSeasons.getInstance().getLogger().severe("Invalid world -> \"" + worldName + "\"");
+                    logger.severe("Invalid world -> \"" + worldName + "\"");
                 continue;
             }
             worlds.add(Bukkit.getWorld(worldName));
         }
         if(worlds.isEmpty()) {
             if(!alreadyPrintedInvalidWorlds) {
-                DynamicSeasons.getInstance().getLogger().severe("0 worlds loaded. Disabling plugin...");
-                DynamicSeasons.getInstance().getLogger().severe("Add worlds to your config.yml!");
+                logger.severe("0 worlds loaded. Disabling plugin...");
+                logger.severe("Add worlds to your config.yml!");
             }
             Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> Bukkit.getPluginManager().disablePlugin(DynamicSeasons.getInstance()));
         }
@@ -418,7 +342,7 @@ public class ConfigManager {
     public int randomTickSpeed(String season) {
         int randomTickSpeed = cfg.getInt(season + ".randomTickSpeed");
         if(randomTickSpeed <= 0) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid randomTickSpeed for season: " + season);
+            logger.severe("Invalid randomTickSpeed for season: " + season);
             return 3;
         }
         return randomTickSpeed;
@@ -427,7 +351,7 @@ public class ConfigManager {
     public Map<EntityType, Integer> getAnimalSpawning(String season) {
         Map<EntityType, Integer> animalSpawning = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".animalSpawning") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid animalSpawning for season " + season);
+            logger.severe("Invalid animalSpawning for season " + season);
             return animalSpawning;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".animalSpawning").getKeys(false);
@@ -439,7 +363,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 animalSpawning.put(entityType, spawnChance);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid animalSpawning '" + animal + "' for season: " + season);
+                logger.severe("Invalid animalSpawning '" + animal + "' for season: " + season);
             }
         }
         return animalSpawning;
@@ -448,7 +372,7 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobMovement(String season) {
         Map<EntityType, Double> mobMovement = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".mobMovement") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid mobMovement for season " + season);
+            logger.severe("Invalid mobMovement for season " + season);
             return mobMovement;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobMovement").getKeys(false);
@@ -460,7 +384,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 mobMovement.put(entityType, movement);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid mobMovement '" + mob + "' for season: " + season);
+                logger.severe("Invalid mobMovement '" + mob + "' for season: " + season);
             }
         }
         return mobMovement;
@@ -469,7 +393,7 @@ public class ConfigManager {
     public Map<EntityType, Integer> getAnimalGrowing(String season) {
         Map<EntityType, Integer> animalGrowing = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".animalGrowing") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid animalGrowing for season " + season);
+            logger.severe("Invalid animalGrowing for season " + season);
             return animalGrowing;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".animalGrowing").getKeys(false);
@@ -481,7 +405,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 animalGrowing.put(entityType, growTimeInTicks);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid animalGrowing '" + animal + "' for season: " + season);
+                logger.severe("Invalid animalGrowing '" + animal + "' for season: " + season);
             }
         }
         return animalGrowing;
@@ -490,7 +414,7 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobBonusArmor(String season) {
         Map<EntityType, Double> mobBonusArmor = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".mobBonusArmor") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid mobBonusArmor for season " + season);
+            logger.severe("Invalid mobBonusArmor for season " + season);
             return mobBonusArmor;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobBonusArmor").getKeys(false);
@@ -502,7 +426,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 mobBonusArmor.put(entityType, bonusArmor);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid mobBonusArmor '" + mob + "' for season: " + season);
+                logger.severe("Invalid mobBonusArmor '" + mob + "' for season: " + season);
             }
         }
         return mobBonusArmor;
@@ -511,7 +435,7 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobMaxHealth(String season) {
         Map<EntityType, Double> mobMaxHealth = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".mobMaxHealth") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid mobMaxHealth for season " + season);
+            logger.severe("Invalid mobMaxHealth for season " + season);
             return mobMaxHealth;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobMaxHealth").getKeys(false);
@@ -523,7 +447,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 mobMaxHealth.put(entityType, maxHealth);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid mobMaxHealth '" + mob + "' for season: " + season);
+                logger.severe("Invalid mobMaxHealth '" + mob + "' for season: " + season);
             }
         }
         return mobMaxHealth;
@@ -532,7 +456,7 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobAttackDamage(String season) {
         Map<EntityType, Double> mobAttackDamage = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".mobAttackDamage") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid mobAttackDamage for season " + season);
+            logger.severe("Invalid mobAttackDamage for season " + season);
             return mobAttackDamage;
         }
         var sectionKeys = cfg.getConfigurationSection(season + ".mobAttackDamage").getKeys(false);
@@ -544,7 +468,7 @@ public class ConfigManager {
                     throw new NullPointerException();
                 mobAttackDamage.put(entityType, attackDamage);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid mobAttackDamage '" + mob + "' for season: " + season);
+                logger.severe("Invalid mobAttackDamage '" + mob + "' for season: " + season);
             }
         }
         return mobAttackDamage;
@@ -558,7 +482,7 @@ public class ConfigManager {
                 var cropType = Material.valueOf(cropString);
                 preventCropGrowing.add(cropType);
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid preventCropGrowing '" + cropString + "' for season " + season);
+                logger.severe("Invalid preventCropGrowing '" + cropString + "' for season " + season);
             }
         }
         return preventCropGrowing;
@@ -567,7 +491,7 @@ public class ConfigManager {
     public List<PotionEffect> getPotionEffects(String season) {
         List<PotionEffect> potionEffects = new ArrayList<>();
         if(cfg.getConfigurationSection(season + ".potionEffects") == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid potionEffects for season " + season);
+            logger.severe("Invalid potionEffects for season " + season);
             return potionEffects;
         }
         var keys = cfg.getConfigurationSection(season + ".potionEffects").getKeys(false);
@@ -579,16 +503,141 @@ public class ConfigManager {
                     throw new Exception();
                 potionEffects.add(type.createEffect(10*20, amplifier));
             } catch (Exception e) {
-                DynamicSeasons.getInstance().getLogger().severe("Invalid potionEffects '" + key + "' for season " + season);
+                logger.severe("Invalid potionEffects '" + key + "' for season " + season);
             }
         }
         return potionEffects;
     }
 
+    public List<LootDrop> getLootDrops(String season) {
+        List<LootDrop> lootDrops = new ArrayList<>();
+        var mm = MiniMessage.miniMessage();
+        var entities = cfg.getConfigurationSection(season + ".lootDrops").getKeys(false);
+        for(var entity : entities) {
+            try {
+                EntityType.valueOf(entity);
+            } catch (Exception e) {
+                logger.severe("Invalid LootDrops entity '" + entity + "' for season " + season);
+                continue;
+            }
+            Map<ItemStack, Integer> itemList = new HashMap<>();
+            var itemKeys = cfg.getConfigurationSection(season + ".lootDrops." + entity).getKeys(false);
+
+            for(var item : itemKeys) {
+                var displayname = cfg.getString(season + ".lootDrops." + entity + "." + item + ".displayname");
+                var lore = cfg.getStringList(season + ".lootDrops." + entity + "." + item + ".lore");
+                var material = cfg.getString(season + ".lootDrops." + entity + "." + item + ".material");
+                var amount = cfg.getInt(season + ".lootDrops." + entity + "." + item + ".amount");
+                var dropChance = cfg.getInt(season + ".lootDrops." + entity + "." + item + ".dropChance");
+                var enchantments = new HashMap<Enchantment, Integer>();
+
+                if(cfg.getConfigurationSection(season + ".lootDrops." + entity + "." + item + ".enchantments") == null) {
+                    logger.severe("Invalid enchantments section\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item);
+                    continue;
+                }
+
+                cfg.getConfigurationSection(season + ".lootDrops." + entity + "." + item + ".enchantments").getKeys(false).forEach(enchantmentName -> {
+                    var level = cfg.getInt(season + ".lootDrops." + entity + "." + item + ".enchantments." + enchantmentName);
+                    var enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentName));
+                    if(enchantment != null) {
+                        if(level != 0) {
+                            enchantments.put(enchantment, level);
+                        } else
+                            logger.severe("Invalid enchantment level '" + level + "'\n" +
+                                    "Season: " + season + "\n" +
+                                    "Mob: " + entity + "\n" +
+                                    "Item: " + item);
+                    } else
+                        logger.severe("Invalid enchantment '" + enchantmentName + "'\n" +
+                                "Season: " + season + "\n" +
+                                "Mob: " + entity + "\n" +
+                                "Item: " + item);
+                });
+
+                if(displayname == null) {
+                    logger.severe("Invalid displayname!\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item);
+                    continue;
+                }
+                try {
+                    mm.deserialize(displayname);
+                } catch (Exception e) {
+                    logger.severe("Invalid displayname format!\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item + "\n" +
+                            "Error: " + e.getMessage());
+                    continue;
+                }
+
+                if(!lore.isEmpty()) {
+                    lore.forEach(line -> {
+                        try {
+                            mm.deserialize(line);
+                        } catch (Exception e) {
+                            logger.severe("Invalid lore line '" + line + "'\n" +
+                                    "Season: " + season + "\n" +
+                                    "Mob: " + entity + "\n" +
+                                    "Item: " + item + "\n" +
+                                    "Error: " + e.getMessage());
+                            lore.remove(line);
+                        }
+                    });
+                }
+
+                if(material == null) {
+                    logger.severe("Invalid material!\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item);
+                    continue;
+                }
+                if(Material.getMaterial(material) == null) {
+                    logger.severe("Invalid material name '" + material + "'\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item + "\n");
+                    continue;
+                }
+
+                if(amount == 0) {
+                    logger.severe("Invalid amount '" + amount + "'\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item + "\n");
+                    continue;
+                }
+
+                if(dropChance < 0) {
+                    logger.severe("Invalid dropChance '" + dropChance + "'\n" +
+                            "Season: " + season + "\n" +
+                            "Mob: " + entity + "\n" +
+                            "Item: " + item + "\n");
+                    continue;
+                }
+
+                itemList.put(new ItemBuilder(Material.getMaterial(material))
+                                .setDisplayName(mm.deserialize(displayname))
+                                .setLore(lore.toArray(new String[0]))
+                                .setAmount(amount)
+                                .addEnchantments(enchantments)
+                        .build(), dropChance);
+            }
+
+            lootDrops.add(new LootDrop(EntityType.valueOf(entity), itemList));
+        }
+        return lootDrops;
+    }
+
     public int getXPBonus(String season) {
         int xpBonus = cfg.getInt(season + ".xpBonus");
         if(xpBonus < 0) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid xpBonus for season: " + season);
+            logger.severe("Invalid xpBonus for season: " + season);
             return 0;
         }
         return xpBonus;

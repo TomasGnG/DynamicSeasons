@@ -44,6 +44,7 @@ public class SeasonManager {
                     config.getMobAttackDamage(seasonName),
                     config.getPreventCropGrowing(seasonName),
                     config.getPotionEffects(seasonName),
+                    config.getLootDrops(seasonName),
                     config.getXPBonus(seasonName));
 
             seasons.put(seasonType, season);
