@@ -715,24 +715,6 @@ public class ConfigManager {
         return lootDrops;
     }
 
-    public List<EntityType> getBossTypes(String season) {
-        List<EntityType> entityTypes = new ArrayList<>();
-        var bossSection = cfg.getConfigurationSection(season + ".bossSpawning");
-        if(bossSection == null)
-            return entityTypes;
-        var mobTypeSection = bossSection.getKeys(false);
-        for(var mobTypeString : mobTypeSection) {
-            try {
-                entityTypes.add(EntityType.valueOf(mobTypeString));
-            } catch (Exception e) {
-                continue;
-            }
-        }
-        return entityTypes;
-    }
-
-
-
     public List<BossEntity> getBossList(String season) {
         List<BossEntity> bossList = new ArrayList<>();
         var bossSection = cfg.getConfigurationSection(season + ".bossSpawning");
