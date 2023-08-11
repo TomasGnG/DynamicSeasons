@@ -1,4 +1,4 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.template;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;

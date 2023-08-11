@@ -1,4 +1,4 @@
-package de.tomasgng.utils;
+package de.tomasgng.utils.template;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.WeatherType;
@@ -13,6 +13,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.potion.PotionEffect;
 
 import java.util.ArrayList;
@@ -25,7 +27,7 @@ public class Season {
     private final boolean weather;
     private final List<WeatherType> weatherTypes;
     private final int randomTickSpeed;
-    private final Map<EntityType, Integer> animalSpawning;
+    private final Map<EntityType, Double> animalSpawning;
     private final Map<EntityType, Double> mobMovement;
     private final Map<EntityType, Integer> animalGrowing;
     private final Map<EntityType, Double> mobBonusArmor;
@@ -34,13 +36,16 @@ public class Season {
     private final List<Material> preventCropGrowing;
     private final List<PotionEffect> potionEffects;
     private final List<LootDrop> lootDrops;
+    private final List<BossEntity> bossList;
     private final int xpBonus;
+    private final Random rnd = new Random();
+    private final List<BossEntity> activeBosses = new ArrayList<>();
 
     public Season(List<World> worlds,
                   boolean weather,
                   List<WeatherType> weatherTypes,
                   int randomTickSpeed,
-                  Map<EntityType, Integer> animalSpawning,
+                  Map<EntityType, Double> animalSpawning,
                   Map<EntityType, Double> mobMovement,
                   Map<EntityType, Integer> animalGrowing,
                   Map<EntityType, Double> mobBonusArmor,
@@ -49,6 +54,7 @@ public class Season {
                   List<Material> preventCropGrowing,
                   List<PotionEffect> potionEffects,
                   List<LootDrop> lootDrops,
+                  List<BossEntity> bossList,
                   int xpBonus) {
         this.worlds = worlds;
         this.weather = weather;
@@ -63,6 +69,7 @@ public class Season {
         this.preventCropGrowing = preventCropGrowing;
         this.potionEffects = potionEffects;
         this.lootDrops = lootDrops;
+        this.bossList = bossList;
         this.xpBonus = xpBonus;
     }
 
@@ -100,10 +107,11 @@ public class Season {
             handleMobArmorBonus(entity);
             handleMobMaxHealth(entity);
             handleMobAttackDamage(entity);
+            handleBossSpawning(entity);
             return false;
         }
-        int chanceToSpawn = animalSpawning.get(entity.getType());
-        int randomChance = new Random().nextInt(0, 101);
+        double chanceToSpawn = animalSpawning.get(entity.getType());
+        double randomChance = rnd.nextDouble(0, 101);
         if(randomChance <= chanceToSpawn)
             return true;
         handleAnimalGrowing(entity);
@@ -111,6 +119,7 @@ public class Season {
         handleMobArmorBonus(entity);
         handleMobMaxHealth(entity);
         handleMobAttackDamage(entity);
+        handleBossSpawning(entity);
         return false;
     }
 
@@ -206,13 +215,65 @@ public class Season {
         if(lootdrop == null)
             return;
 
-        var rnd = new Random();
+        boolean isBoss = false;
+        for(var boss : activeBosses) {
+            if (entity == boss.getEntity()) {
+                isBoss = true;
+                break;
+            }
+        }
+        if(isBoss)
+            return;
+
         var world = entity.getWorld();
         var loc = entity.getLocation();
         for(var entry : lootdrop.getItemStacks().entrySet()) {
-            int randomChance = rnd.nextInt(1, 101);
+            double randomChance = rnd.nextDouble(1, 101);
             if(randomChance <= entry.getValue())
                 world.dropItemNaturally(loc, entry.getKey());
         }
+    }
+
+    public void handleBossSpawning(LivingEntity entity) {
+        if(!isValidWorld(entity.getWorld()))
+            return;
+        var type = entity.getType();
+        BossEntity boss = null;
+        for(var currentBoss : bossList) {
+            if(currentBoss.getEntityType() == type)
+                boss = currentBoss.clone();
+        }
+        if(boss == null)
+            return;
+        boolean playerIsNearby = false;
+        var nearbyEntites = entity.getNearbyEntities(25, 25, 25);
+        for(var nearbyEntity : nearbyEntites) {
+            if(nearbyEntity.getType() == EntityType.PLAYER)
+                playerIsNearby = true;
+        }
+        if(!playerIsNearby)
+            return;
+        double randomChance = rnd.nextDouble(0, 101);
+        double bossSpawnChance = boss.getSpawnChance();
+        if(randomChance <= bossSpawnChance) {
+            activeBosses.add(boss);
+            boss.setEntity(entity);
+            boss.handleSpawn();
+        }
+    }
+
+    public void handleBossDeath(EntityDeathEvent event) {
+        activeBosses.forEach(boss -> {
+            boss.handleDeath(event);
+        });
+    }
+
+    public void handleBossDamageEvent(EntityDamageByEntityEvent event) {
+        activeBosses.forEach(boss -> {
+            if(event.getDamager() == boss.getEntity())
+                boss.handleDealDamage();
+            if(event.getEntity() == boss.getEntity())
+                boss.handleTakeDamage();
+        });
     }
 }

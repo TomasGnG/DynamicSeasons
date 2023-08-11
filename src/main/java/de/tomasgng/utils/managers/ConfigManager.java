@@ -1,15 +1,13 @@
 package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
-import de.tomasgng.utils.ItemBuilder;
 import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
+import de.tomasgng.utils.template.BossEntity;
+import de.tomasgng.utils.template.ItemBuilder;
 import lombok.SneakyThrows;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
@@ -32,6 +30,7 @@ public class ConfigManager {
     private final String sqlSelectAllData = "SELECT * FROM data";
     private final String sqlUpdateTime = "UPDATE data SET time=?";
     private final Logger logger = DynamicSeasons.getInstance().getLogger();
+    private final MiniMessage mm = MiniMessage.miniMessage();
 
     public ConfigManager() {
         createFiles();
@@ -167,7 +166,58 @@ public class ConfigManager {
             cfg.set("spring.lootDrops.ZOMBIE.1.amount", 1);
             cfg.set("spring.lootDrops.ZOMBIE.1.dropChance", 10);
             cfg.set("spring.lootDrops.ZOMBIE.1.enchantments.sharpness", 2);
+            cfg.set("spring.bossSpawning.ZOMBIE.displayName", "<yellow>BOSS <dark_gray>| <green>%hp%<dark_gray>/<yellow>%maxHP% <dark_red>❤");
+            cfg.set("spring.bossSpawning.ZOMBIE.nameVisible", false);
+            cfg.set("spring.bossSpawning.ZOMBIE.spawnChance", 0.5);
+            cfg.set("spring.bossSpawning.ZOMBIE.maxHealth", 60.0);
+            cfg.set("spring.bossSpawning.ZOMBIE.attackDamage", 5.0);
+            cfg.set("spring.bossSpawning.ZOMBIE.movementSpeed", 0.3);
+            cfg.set("spring.bossSpawning.ZOMBIE.bonusArmor", 20.0);
+            cfg.set("spring.bossSpawning.ZOMBIE.followRange", 20);
+            cfg.set("spring.bossSpawning.ZOMBIE.droppedXPOnDeath", 400);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.spawn.sound", Sound.ENTITY_ENDER_DRAGON_GROWL.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.spawn.volume", 1.0F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.spawn.pitch", 0.5F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.ambient.sound", Sound.ENTITY_ENDER_DRAGON_AMBIENT.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.ambient.volume", 1.0F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.ambient.pitch", 0.5F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.death.sound", Sound.ENTITY_ENDER_DRAGON_DEATH.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.death.volume", 1.0F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.death.pitch", 0.5F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.takeDamage.sound", Sound.ENTITY_ENDER_DRAGON_HURT.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.takeDamage.volume", 1.0F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.takeDamage.pitch", 0.5F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.dealDamage.sound", Sound.ENTITY_ENDER_DRAGON_SHOOT.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.dealDamage.volume", 1.0F);
+            cfg.set("spring.bossSpawning.ZOMBIE.sounds.dealDamage.pitch", 0.5F);
+            cfg.set("spring.bossSpawning.ZOMBIE.executeCommandsOnDeath.enabled", false);
+            cfg.set("spring.bossSpawning.ZOMBIE.executeCommandsOnDeath.commands", List.of("bald add %player% 100"));
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.displayname", "<gold>Legendary Sword");
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.lore", List.of("<gray>This sword is", "<gold>LEGENDARY!"));
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.material", Material.DIAMOND_SWORD.name());
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.amount", 1);
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.dropChance", 10);
+            cfg.set("spring.bossSpawning.ZOMBIE.lootOnDeath.1.enchantments.sharpness", 6);
             cfg.set("spring.xpBonus", 20);
+            cfg.setComments("spring.bossSpawning.ZOMBIE", List.of("Mobtype"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.displayName", List.of("Displayname of the boss"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.nameVisible", List.of("Should the displayname be visible only if you look at him directly?"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.spawnChance", List.of("The chance of the boss to spawn"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.maxHealth", List.of("The max health of the boss"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.attackDamage", List.of("The attack damage of the boss"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.movementSpeed", List.of("The movementspeed of the boss"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.bonusArmor", List.of("The bonus armor of the boss (MAX is 20.0)"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.followRange", List.of("The range of blocks where the boss will follow players"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.droppedXPOnDeath", List.of("The dropped xp when the boss dies"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds", List.of("Customize the sounds that the boss will make"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds.spawn", List.of("The sound when the boss spawns"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds.ambient", List.of("The sound when the boss is alive"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds.death", List.of("The sound when the boss dies"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds.takeDamage", List.of("The sound when the boss takes damage"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.sounds.dealDamage", List.of("The sound when the boss deals damage"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.executeCommandsOnDeath", List.of("Run commands when a player kills the boss", "%player% = killer"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.executeCommandsOnDeath.enabled", List.of("Should this feature be enabled?"));
+            cfg.setComments("spring.bossSpawning.ZOMBIE.lootOnDeath", List.of("The loot of the boss when he dies", "This section is similar to the 'lootDrops' section"));
             cfg.setComments("spring.lootDrops", List.of("Here you can customize the custom loot from mobs."));
             cfg.setComments("spring.lootDrops.ZOMBIE", List.of("Name of the mob"));
             cfg.setComments("spring.lootDrops.ZOMBIE.1", List.of("You can name this whatever you like as this isnt that important :)"));
@@ -217,6 +267,38 @@ public class ConfigManager {
                 cfg.set(season + ".lootDrops.ZOMBIE.1.amount", 1);
                 cfg.set(season + ".lootDrops.ZOMBIE.1.dropChance", 10);
                 cfg.set(season + ".lootDrops.ZOMBIE.1.enchantments.sharpness", 2);
+                cfg.set(season + ".bossSpawning.ZOMBIE.displayName", "<yellow>BOSS <dark_gray>| <green>%hp%<dark_gray>/<yellow>%maxHP%");
+                cfg.set(season + ".bossSpawning.ZOMBIE.nameVisible", false);
+                cfg.set(season + ".bossSpawning.ZOMBIE.spawnChance", 0.5);
+                cfg.set(season + ".bossSpawning.ZOMBIE.maxHealth", 60.0);
+                cfg.set(season + ".bossSpawning.ZOMBIE.attackDamage", 5.0);
+                cfg.set(season + ".bossSpawning.ZOMBIE.movementSpeed", 0.3);
+                cfg.set(season + ".bossSpawning.ZOMBIE.bonusArmor", 20.0);
+                cfg.set(season + ".bossSpawning.ZOMBIE.followRange", 20);
+                cfg.set(season + ".bossSpawning.ZOMBIE.droppedXPOnDeath", 400);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.spawn.sound", Sound.ENTITY_ENDER_DRAGON_GROWL.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.spawn.volume", 1.0F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.spawn.pitch", 0.5F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.ambient.sound", Sound.ENTITY_ENDER_DRAGON_AMBIENT.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.ambient.volume", 1.0F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.ambient.pitch", 0.5F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.death.sound", Sound.ENTITY_ENDER_DRAGON_DEATH.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.death.volume", 1.0F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.death.pitch", 0.5F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.takeDamage.sound", Sound.ENTITY_ENDER_DRAGON_HURT.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.takeDamage.volume", 1.0F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.takeDamage.pitch", 0.5F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.dealDamage.sound", Sound.ENTITY_ENDER_DRAGON_SHOOT.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.dealDamage.volume", 1.0F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.sounds.dealDamage.pitch", 0.5F);
+                cfg.set(season + ".bossSpawning.ZOMBIE.executeCommandsOnDeath.enabled", false);
+                cfg.set(season + ".bossSpawning.ZOMBIE.executeCommandsOnDeath.commands", List.of("bald add %player% 100"));
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.displayname", "<gold>Legendary Sword");
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.lore", List.of("<gray>This sword is", "<gold>LEGENDARY!"));
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.material", Material.DIAMOND_SWORD.name());
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.amount", 1);
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.dropChance", 10);
+                cfg.set(season + ".bossSpawning.ZOMBIE.lootOnDeath.1.enchantments.sharpness", 6);
                 cfg.set(season + ".xpBonus", 20);
             }
 
@@ -348,8 +430,8 @@ public class ConfigManager {
         return randomTickSpeed;
     }
 
-    public Map<EntityType, Integer> getAnimalSpawning(String season) {
-        Map<EntityType, Integer> animalSpawning = new HashMap<>();
+    public Map<EntityType, Double> getAnimalSpawning(String season) {
+        Map<EntityType, Double> animalSpawning = new HashMap<>();
         if(cfg.getConfigurationSection(season + ".animalSpawning") == null) {
             logger.severe("Invalid animalSpawning for season " + season);
             return animalSpawning;
@@ -358,7 +440,7 @@ public class ConfigManager {
         for (var animal : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(animal);
-                int spawnChance = cfg.getInt(season + ".animalSpawning." + animal);
+                double spawnChance = cfg.getDouble(season + ".animalSpawning." + animal);
                 if(spawnChance > 100 || spawnChance < 0)
                     throw new NullPointerException();
                 animalSpawning.put(entityType, spawnChance);
@@ -511,7 +593,6 @@ public class ConfigManager {
 
     public List<LootDrop> getLootDrops(String season) {
         List<LootDrop> lootDrops = new ArrayList<>();
-        var mm = MiniMessage.miniMessage();
         var entities = cfg.getConfigurationSection(season + ".lootDrops").getKeys(false);
         for(var entity : entities) {
             try {
@@ -520,7 +601,7 @@ public class ConfigManager {
                 logger.severe("Invalid LootDrops entity '" + entity + "' for season " + season);
                 continue;
             }
-            Map<ItemStack, Integer> itemList = new HashMap<>();
+            Map<ItemStack, Double> itemList = new HashMap<>();
             var itemKeys = cfg.getConfigurationSection(season + ".lootDrops." + entity).getKeys(false);
 
             for(var item : itemKeys) {
@@ -528,7 +609,7 @@ public class ConfigManager {
                 var lore = cfg.getStringList(season + ".lootDrops." + entity + "." + item + ".lore");
                 var material = cfg.getString(season + ".lootDrops." + entity + "." + item + ".material");
                 var amount = cfg.getInt(season + ".lootDrops." + entity + "." + item + ".amount");
-                var dropChance = cfg.getInt(season + ".lootDrops." + entity + "." + item + ".dropChance");
+                var dropChance = cfg.getDouble(season + ".lootDrops." + entity + "." + item + ".dropChance");
                 var enchantments = new HashMap<Enchantment, Integer>();
 
                 if(cfg.getConfigurationSection(season + ".lootDrops." + entity + "." + item + ".enchantments") == null) {
@@ -634,6 +715,322 @@ public class ConfigManager {
         return lootDrops;
     }
 
+    public List<EntityType> getBossTypes(String season) {
+        List<EntityType> entityTypes = new ArrayList<>();
+        var bossSection = cfg.getConfigurationSection(season + ".bossSpawning");
+        if(bossSection == null)
+            return entityTypes;
+        var mobTypeSection = bossSection.getKeys(false);
+        for(var mobTypeString : mobTypeSection) {
+            try {
+                entityTypes.add(EntityType.valueOf(mobTypeString));
+            } catch (Exception e) {
+                continue;
+            }
+        }
+        return entityTypes;
+    }
+
+
+
+    public List<BossEntity> getBossList(String season) {
+        List<BossEntity> bossList = new ArrayList<>();
+        var bossSection = cfg.getConfigurationSection(season + ".bossSpawning");
+        if(bossSection == null) {
+            logger.severe("Invalid bossSpawning section for season: " + season);
+            return bossList;
+        }
+
+        var mobTypeSection = bossSection.getKeys(false);
+        for(var mobTypeString : mobTypeSection) {
+            try {
+                EntityType.valueOf(mobTypeString);
+            } catch (Exception e) {
+                logger.severe("Invalid bossSpawning mobtype for season: " + season);
+                continue;
+            }
+
+            var displayName = cfg.getString(season + ".bossSpawning." + mobTypeString + ".displayName");
+            var nameVisible = cfg.getBoolean(season + ".bossSpawning." + mobTypeString + ".nameVisible");
+            var spawnChance = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".spawnChance");
+            var maxHealth = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".maxHealth");
+            var attackDamage = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".attackDamage");
+            var movementSpeed = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".movementSpeed");
+            var bonusArmor = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".bonusArmor");
+            var followRange = cfg.getInt(season + ".bossSpawning." + mobTypeString + ".followRange");
+            var droppedXPOnDeath = cfg.getInt(season + ".bossSpawning." + mobTypeString + ".droppedXPOnDeath");
+            if(displayName == null) {
+                logger.severe("Invalid bossSpawning displayname!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(checkMMFormat(displayName) != null) {
+                logger.severe("Invalid bossSpawning displayname format!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString +
+                        "\nError: " + checkMMFormat(displayName));
+                continue;
+            }
+            if(spawnChance > 100 || spawnChance < 0) {
+                logger.severe("Invalid bossSpawning spawnChance!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(maxHealth <= 0) {
+                logger.severe("Invalid bossSpawning maxHealth!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(attackDamage <= 0) {
+                logger.severe("Invalid bossSpawning attackDamage!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(movementSpeed <= 0) {
+                logger.severe("Invalid bossSpawning movementSpeed!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(bonusArmor < 0) {
+                logger.severe("Invalid bossSpawning bonusArmor!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(followRange <= 0) {
+                logger.severe("Invalid bossSpawning followRange!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+            if(droppedXPOnDeath < 0) {
+                logger.severe("Invalid bossSpawning droppedXPOnDeath!" +
+                        "\nSeason: " + season +
+                        "\nMobtype: " + mobTypeString);
+                continue;
+            }
+
+            var soundsSection = cfg.getConfigurationSection(season + ".bossSpawning." + mobTypeString + ".sounds");
+            if(soundsSection == null) {
+                logger.severe("Invalid bossSpawning Sounds section for season: " + season);
+                continue;
+            }
+            var soundsKeys = soundsSection.getKeys(false);
+
+            boolean invalidSound = false;
+            for(var soundString : soundsKeys) {
+                if(cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds." + soundString + ".volume") < 0) {
+                    logger.severe("Invalid bossSpawning sound volume!" +
+                            "\nSeason: " + season +
+                            "\nMobtype: " + mobTypeString +
+                            "\nSound: " + soundString);
+                    invalidSound = true;
+                }
+                if(cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") < 0 || cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") > 2) {
+                    logger.severe("Invalid bossSpawning sound pitch!" +
+                            "\nSeason: " + season +
+                            "\nMobtype: " + mobTypeString +
+                            "\nSound: " + soundString);
+                    invalidSound = true;
+                }
+
+            }
+            if(invalidSound)
+                continue;
+
+            var spawnSoundType = cfg.getString(season + ".bossSpawning." + mobTypeString + ".sounds.spawn.sound").toLowerCase();
+            var spawnSoundVolume = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.spawn.volume");
+            var spawnSoundPitch = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.spawn.pitch");
+            var ambientSoundType = cfg.getString(season + ".bossSpawning." + mobTypeString + ".sounds.ambient.sound").toLowerCase();
+            var ambientSoundVolume = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.ambient.volume");
+            var ambientSoundPitch = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.ambient.pitch");
+            var deathSoundType = cfg.getString(season + ".bossSpawning." + mobTypeString + ".sounds.death.sound").toLowerCase();
+            var deathSoundVolume = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.death.volume");
+            var deathSoundPitch = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.death.pitch");
+            var takeDamageSoundType = cfg.getString(season + ".bossSpawning." + mobTypeString + ".sounds.takeDamage.sound").toLowerCase();
+            var takeDamageSoundVolume = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.takeDamage.volume");
+            var takeDamageSoundPitch = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.takeDamage.pitch");
+            var dealDamageSoundType = cfg.getString(season + ".bossSpawning." + mobTypeString + ".sounds.dealDamage.sound").toLowerCase();
+            var dealDamageSoundVolume = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.dealDamage.volume");
+            var dealDamageSoundPitch = cfg.getDouble(season + ".bossSpawning." + mobTypeString + ".sounds.dealDamage.pitch");
+
+            net.kyori.adventure.sound.Sound spawnSound = net.kyori.adventure.sound.Sound.sound()
+                    .type(NamespacedKey.minecraft(spawnSoundType))
+                    .volume((float) spawnSoundVolume)
+                    .pitch((float) spawnSoundPitch)
+                    .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
+                    .build();
+            net.kyori.adventure.sound.Sound ambientSound = net.kyori.adventure.sound.Sound.sound()
+                    .type(NamespacedKey.minecraft(ambientSoundType))
+                    .volume((float) ambientSoundVolume)
+                    .pitch((float) ambientSoundPitch)
+                    .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
+                    .build();
+            net.kyori.adventure.sound.Sound deathSound = net.kyori.adventure.sound.Sound.sound()
+                    .type(NamespacedKey.minecraft(deathSoundType))
+                    .volume((float) deathSoundVolume)
+                    .pitch((float) deathSoundPitch)
+                    .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
+                    .build();
+            net.kyori.adventure.sound.Sound takeDamageSound = net.kyori.adventure.sound.Sound.sound()
+                    .type(NamespacedKey.minecraft(takeDamageSoundType))
+                    .volume((float) takeDamageSoundVolume)
+                    .pitch((float) takeDamageSoundPitch)
+                    .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
+                    .build();
+            net.kyori.adventure.sound.Sound dealDamageSound = net.kyori.adventure.sound.Sound.sound()
+                    .type(NamespacedKey.minecraft(dealDamageSoundType))
+                    .volume((float) dealDamageSoundVolume)
+                    .pitch((float) dealDamageSoundPitch)
+                    .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
+                    .build();
+
+            var commandsSection = cfg.getConfigurationSection(season + ".bossSpawning." + mobTypeString + ".executeCommandsOnDeath");
+            if(commandsSection == null) {
+                logger.severe("Invalid executeCommandsOnDeath section for season: " + season);
+                continue;
+            }
+            var executeCommandsOnDeathEnabled = cfg.getBoolean(season + ".bossSpawning." + mobTypeString + ".executeCommandsOnDeath.enabled");
+            List<String> commandList = cfg.getStringList(season + ".bossSpawning." + mobTypeString + ".executeCommandsOnDeath.commands");
+
+            var lootDrops = getBossSpawningLootDrops(season, mobTypeString);
+
+            BossEntity bossEntity = new BossEntity(
+                    EntityType.valueOf(mobTypeString),
+                    displayName,
+                    nameVisible,
+                    spawnChance,
+                    maxHealth,
+                    attackDamage,
+                    movementSpeed,
+                    bonusArmor,
+                    followRange,
+                    droppedXPOnDeath,
+                    spawnSound,
+                    ambientSound,
+                    deathSound,
+                    takeDamageSound,
+                    dealDamageSound,
+                    executeCommandsOnDeathEnabled,
+                    commandList,
+                    lootDrops
+            );
+            bossList.add(bossEntity);
+        }
+        return bossList;
+    }
+
+    private Map<ItemStack, Double> getBossSpawningLootDrops(String season, String mobType) {
+        Map<ItemStack, Double> lootDrops = new HashMap<>();
+        if(cfg.getConfigurationSection(season + ".bossSpawning." + mobType + ".lootOnDeath") == null) {
+            logger.severe("Invalid bossSpawning lootDrops section for season: " + season);
+            return lootDrops;
+        }
+
+        var items = cfg.getConfigurationSection(season + ".bossSpawning." + mobType + ".lootOnDeath").getKeys(false);
+        for(var item : items) {
+            var displayname = cfg.getString(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".displayname");
+            var lore = cfg.getStringList(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".lore");
+            var material = cfg.getString(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".material");
+            var amount = cfg.getInt(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".amount");
+            var dropChance = cfg.getDouble(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".dropChance");
+            var enchantments = new HashMap<Enchantment, Integer>();
+
+            if (cfg.getConfigurationSection(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".enchantments") == null) {
+                logger.severe("Invalid enchantments section\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item);
+                continue;
+            }
+
+            cfg.getConfigurationSection(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".enchantments").getKeys(false).forEach(enchantmentName -> {
+                var level = cfg.getInt(season + ".bossSpawning." + mobType + ".lootOnDeath." + item + ".enchantments." + enchantmentName);
+                var enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentName));
+                if (enchantment != null) {
+                    if (level != 0) {
+                        enchantments.put(enchantment, level);
+                    } else
+                        logger.severe("Invalid bossSpawning enchantment level '" + level + "'\n" +
+                                "Season: " + season + "\n" +
+                                "Item: " + item);
+                } else
+                    logger.severe("Invalid bossSpawning enchantment '" + enchantmentName + "'\n" +
+                            "Season: " + season + "\n" +
+                            "Item: " + item);
+            });
+
+            if (displayname == null) {
+                logger.severe("Invalid bossSpawning displayname!\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item);
+                continue;
+            }
+            try {
+                mm.deserialize(displayname);
+            } catch (Exception e) {
+                logger.severe("Invalid bossSpawning displayname format!\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item + "\n" +
+                        "Error: " + e.getMessage());
+                continue;
+            }
+
+            if (!lore.isEmpty()) {
+                lore.forEach(line -> {
+                    try {
+                        mm.deserialize(line);
+                    } catch (Exception e) {
+                        logger.severe("Invalid bossSpawning lore line '" + line + "'\n" +
+                                "Season: " + season + "\n" +
+                                "Item: " + item + "\n" +
+                                "Error: " + e.getMessage());
+                        lore.remove(line);
+                    }
+                });
+            }
+
+            if (material == null) {
+                logger.severe("Invalid bossSpawning material!\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item);
+                continue;
+            }
+            if (Material.getMaterial(material) == null) {
+                logger.severe("Invalid bossSpawning material name '" + material + "'\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item + "\n");
+                continue;
+            }
+
+            if (amount == 0) {
+                logger.severe("Invalid bossSpawning amount '" + amount + "'\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item + "\n");
+                continue;
+            }
+
+            if (dropChance < 0) {
+                logger.severe("Invalid bossSpawning dropChance '" + dropChance + "'\n" +
+                        "Season: " + season + "\n" +
+                        "Item: " + item + "\n");
+                continue;
+            }
+
+            lootDrops.put(new ItemBuilder(Material.getMaterial(material))
+                    .setDisplayName(mm.deserialize(displayname))
+                    .setLore(lore.toArray(new String[0]))
+                    .setAmount(amount)
+                    .addEnchantments(enchantments)
+                    .build(), dropChance);
+        }
+        return lootDrops;
+    }
+
     public int getXPBonus(String season) {
         int xpBonus = cfg.getInt(season + ".xpBonus");
         if(xpBonus < 0) {
@@ -641,5 +1038,14 @@ public class ConfigManager {
             return 0;
         }
         return xpBonus;
+    }
+
+    private String checkMMFormat(String mmString) {
+        try {
+            mm.deserialize(mmString);
+            return null;
+        } catch (Exception e) {
+            return e.getMessage();
+        }
     }
 }

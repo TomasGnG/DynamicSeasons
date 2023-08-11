@@ -11,9 +11,9 @@ public class LootDrop {
     @Getter
     private EntityType entity;
     @Getter
-    private Map<ItemStack, Integer> itemStacks;
+    private Map<ItemStack, Double> itemStacks;
 
-    public LootDrop(EntityType entity, Map<ItemStack, Integer> itemStacks) {
+    public LootDrop(EntityType entity, Map<ItemStack, Double> itemStacks) {
         this.entity = entity;
         this.itemStacks = itemStacks;
     }

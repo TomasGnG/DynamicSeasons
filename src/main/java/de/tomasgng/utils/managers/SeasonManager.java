@@ -1,8 +1,8 @@
 package de.tomasgng.utils.managers;
 
 import de.tomasgng.DynamicSeasons;
-import de.tomasgng.utils.Season;
 import de.tomasgng.utils.enums.SeasonType;
+import de.tomasgng.utils.template.Season;
 import lombok.Getter;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.bukkit.Bukkit;
@@ -45,6 +45,7 @@ public class SeasonManager {
                     config.getPreventCropGrowing(seasonName),
                     config.getPotionEffects(seasonName),
                     config.getLootDrops(seasonName),
+                    config.getBossList(seasonName),
                     config.getXPBonus(seasonName));
 
             seasons.put(seasonType, season);
