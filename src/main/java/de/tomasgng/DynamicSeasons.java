@@ -75,7 +75,7 @@ public final class DynamicSeasons extends JavaPlugin {
     }
 
     private boolean updateCheck(boolean silent) {
-        var currentVersion = getPluginMeta().getVersion();
+        var currentVersion = getDescription().getVersion();
         String latestVersion = "";
 
         try {

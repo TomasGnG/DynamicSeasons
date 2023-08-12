@@ -307,7 +307,7 @@ public class ConfigManager {
     }
 
     private void fixMissingSections() {
-        if(cfg.isSet("CONFIG_VERSION") && cfg.getString("CONFIG_VERSION").equalsIgnoreCase(DynamicSeasons.getInstance().getPluginMeta().getVersion()))
+        if(cfg.isSet("CONFIG_VERSION") && cfg.getString("CONFIG_VERSION").equalsIgnoreCase(DynamicSeasons.getInstance().getDescription().getVersion()))
             return;
         Map<String, Object> oldValues = new LinkedHashMap<>();
         for(var key : cfg.getKeys(true)) {
