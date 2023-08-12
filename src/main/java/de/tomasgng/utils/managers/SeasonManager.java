@@ -55,6 +55,10 @@ public class SeasonManager {
         currentSeasonInstance.start();
     }
 
+    public void reload() {
+        initialize();
+    }
+
     private void startSeasonTimer() {
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
             config.decreaseRemainingTime();

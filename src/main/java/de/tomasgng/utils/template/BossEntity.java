@@ -123,13 +123,13 @@ public class BossEntity implements Cloneable {
             if(!entity.isDead()) {
                 entity.getNearbyEntities(25, 25, 25).forEach(nearbyEntity -> {
                     if(nearbyEntity.getType() == EntityType.PLAYER) {
-                        if(lastHitAgo >= 5)
+                        if(lastHitAgo >= 3)
                             nearbyEntity.playSound(getAmbientSound());
                     }
                 });
                 startAmbientSounds();
             }
-        }, random.nextInt(5, 9)*20L);
+        }, random.nextInt(3, 6)*20L);
     }
 
     private void playSpawnSound() {

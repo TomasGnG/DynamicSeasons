@@ -11,7 +11,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MessageManager {
 
@@ -23,6 +25,7 @@ public class MessageManager {
 
     public MessageManager() {
         createFiles();
+        fixMissingSections();
     }
 
     @SneakyThrows
@@ -31,18 +34,24 @@ public class MessageManager {
         if(!file.exists()) {
             file.createNewFile();
 
+            cfg.set("CONFIG_VERSION", DynamicSeasons.getInstance().getDescription().getVersion());
+            cfg.setComments("CONFIG_VERSION", List.of("DONT CHANGE THIS! Simply ignore it :)"));
+
             cfg.set("prefix", "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|");
             cfg.set("command.noPermission", "%prefix% <gray>You have no permission to use this command.");
             cfg.set("command.usage", "%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
-                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>");
+                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>" +
+                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons reload");
             cfg.set("command.seasonAlreadyActive", "%prefix% <gray>This season is already active.");
             cfg.set("command.seasonChanged", "%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.");
             cfg.set("command.invalidNumberFormat", "%prefix% <gray>Invalid number!");
             cfg.set("command.remainingTimeSet", "%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!");
+            cfg.set("command.reload", "%prefix% <green>The plugin message.yml and config.yml were reloaded!");
             cfg.setComments("prefix", List.of("Here you can change the message outputs.",
                     "The messages need to be in MiniMessage format.",
                     "MiniMessage Help: https://docs.advntr.dev/minimessage/index.html",
                     "Here you can test if your messages are valid: https://webui.advntr.dev/"));
+
             cfg.set("season_change.broadcast.enabled", true);
             cfg.set("season_change.broadcast.text", "%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.");
             cfg.set("season_change.title.enabled", true);
@@ -57,13 +66,32 @@ public class MessageManager {
         }
     }
 
+    private void fixMissingSections() {
+        if(cfg.isSet("CONFIG_VERSION") && cfg.getString("CONFIG_VERSION").equalsIgnoreCase(DynamicSeasons.getInstance().getPluginMeta().getVersion()))
+            return;
+        Map<String, Object> oldValues = new LinkedHashMap<>();
+        for(var key : cfg.getKeys(true)) {
+            if(key.equalsIgnoreCase("CONFIG_VERSION"))
+                continue;
+            oldValues.put(key, cfg.get(key));
+        }
+
+        file.delete();
+        createFiles();
+
+        for(var entry : oldValues.entrySet()) {
+            cfg.set(entry.getKey(), entry.getValue());
+        }
+        save();
+    }
+
     @SneakyThrows
     private void save() {
         cfg.save(file);
         reload();
     }
 
-    private void reload() {
+    public void reload() {
         cfg = YamlConfiguration.loadConfiguration(file);
     }
 
@@ -115,7 +143,8 @@ public class MessageManager {
     public Component getCMDUsageComponent() {
         var msg = cfg.getString("command.usage");
         var defaultCMDUsage = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
-                "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>", null, null, -1));
+                "<br>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>" +
+                "<br>%prefix% <gray>Usage: <yellow>/dynseasons reload", null, null, -1));
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid usage message.");
             return defaultCMDUsage;
@@ -260,7 +289,7 @@ public class MessageManager {
         return mm.deserialize(msg);
     }
     
-    public Component getCMDRemainingTimeSet(int newRemainingTime) {
+    public Component getCMDRemainingTimeSetComponent(int newRemainingTime) {
         var msg = cfg.getString("command.remainingTimeSet");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!", null, null, newRemainingTime));
         if(msg == null) {
@@ -272,6 +301,23 @@ public class MessageManager {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid remainingTimeSet format.\nError: " + e.getMessage());
+            return defaultReturn;
+        }
+        return mm.deserialize(msg);
+    }
+
+    public Component getCMDReloadComponent() {
+        var msg = cfg.getString("command.reload");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <green>The plugin message.yml and config.yml were reloaded!", null, null, -1));
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid reload message.");
+            return defaultReturn;
+        }
+        msg = replaceAllPlaceholders(msg, null, null, -1);
+        try {
+            mm.deserialize(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid reload format.\nError: " + e.getMessage());
             return defaultReturn;
         }
         return mm.deserialize(msg);

@@ -34,11 +34,13 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
-        if(args.length != 2) {
+        if(args.length > 2) {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
-        if(!args[0].equalsIgnoreCase("setseason") && !args[0].equalsIgnoreCase("setremainingtime")) {
+        if(!args[0].equalsIgnoreCase("setseason")
+                && !args[0].equalsIgnoreCase("setremainingtime")
+                && !args[0].equalsIgnoreCase("reload")) {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
@@ -64,9 +66,14 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             }
             int newRemainingTime = Integer.parseInt(args[1]);
             configManager.setRemainingTime(newRemainingTime);
-            player.sendMessage(messageManager.getCMDRemainingTimeSet(newRemainingTime));
+            player.sendMessage(messageManager.getCMDRemainingTimeSetComponent(newRemainingTime));
         }
-
+        if(args[0].equalsIgnoreCase("reload")) {
+            configManager.reload();
+            seasonManager.reload();
+            messageManager.reload();
+            player.sendMessage(messageManager.getCMDReloadComponent());
+        }
         return false;
     }
 
@@ -78,10 +85,10 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
             if(!commandSender.hasPermission("dynamicseasons.command.use"))
                 return null;
             if(args.length == 1)
-                return List.of("setseason", "setremainingtime");
+                return List.of("setseason", "setremainingtime", "reload");
             if(args.length == 2) {
                 if(args[0].equalsIgnoreCase("setseason"))
-                    return List.of("SPRING", "SUMMER", "FALL", "WINTER");
+                    return List.of("spring", "summer", "fall", "winter");
                 if(args[0].equalsIgnoreCase("setremainingtime")) {
                     commandSender.sendActionBar(Component.text("Current remaining time in seconds: " + seasonManager.getRemainingTime()));
                 }

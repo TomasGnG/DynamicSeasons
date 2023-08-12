@@ -8,10 +8,7 @@ import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.entity.Ageable;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -102,6 +99,8 @@ public class Season {
         if(spawnReason.equals(CreatureSpawnEvent.SpawnReason.EGG))
             return false;
         if(!animalSpawning.containsKey(entity.getType())) {
+            if(isBoss(entity))
+                return false;
             handleMobMovement(entity);
             handleAnimalGrowing(entity);
             handleMobArmorBonus(entity);
@@ -114,6 +113,8 @@ public class Season {
         double randomChance = rnd.nextDouble(0, 101);
         if(randomChance <= chanceToSpawn)
             return true;
+        if(isBoss(entity))
+            return false;
         handleAnimalGrowing(entity);
         handleMobMovement(entity);
         handleMobArmorBonus(entity);
@@ -234,6 +235,14 @@ public class Season {
         }
     }
 
+    private boolean isBoss(Entity entity) {
+        for(var boss : activeBosses) {
+            if(entity == boss.getEntity())
+                return true;
+        }
+        return false;
+    }
+
     public void handleBossSpawning(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
@@ -246,7 +255,7 @@ public class Season {
         if(boss == null)
             return;
         boolean playerIsNearby = false;
-        var nearbyEntites = entity.getNearbyEntities(25, 25, 25);
+        var nearbyEntites = entity.getNearbyEntities(25, 10, 25);
         for(var nearbyEntity : nearbyEntites) {
             if(nearbyEntity.getType() == EntityType.PLAYER)
                 playerIsNearby = true;
