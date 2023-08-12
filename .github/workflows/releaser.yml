@@ -8,9 +8,6 @@ on:
 jobs:
   compile_build_release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     
     name: Release new version
     
