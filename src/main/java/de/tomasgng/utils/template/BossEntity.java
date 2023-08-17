@@ -7,10 +7,12 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -26,6 +28,8 @@ public class BossEntity implements Cloneable {
     private String displayName;
     @Getter @Setter
     private boolean nameVisible;
+    @Getter @Setter
+    private boolean babyMob;
     @Getter @Setter
     private double spawnChance;
     @Getter @Setter
@@ -56,6 +60,12 @@ public class BossEntity implements Cloneable {
     private List<String> commandsList;
     @Getter @Setter
     private Map<ItemStack, Double> lootDrops;
+    @Getter @Setter
+    private List<PotionEffect> spawnPotionEffects;
+    @Getter @Setter
+    private int cycleTime;
+    @Getter @Setter
+    private List<PotionEffect> cyclePotionEffects;
     private final Random random = new Random();
     private final DecimalFormat df = new DecimalFormat("0.0");
     private final MiniMessage mm = MiniMessage.miniMessage();
@@ -65,6 +75,7 @@ public class BossEntity implements Cloneable {
     public BossEntity(EntityType entityType,
                       String displayName,
                       boolean nameVisible,
+                      boolean babyMob,
                       double spawnChance,
                       double maxHealth,
                       double attackDamage,
@@ -79,10 +90,14 @@ public class BossEntity implements Cloneable {
                       Sound dealDamageSound,
                       boolean executeCommandsEnabled,
                       List<String> commandsList,
-                      Map<ItemStack, Double> lootDrops) {
+                      Map<ItemStack, Double> lootDrops,
+                      List<PotionEffect> spawnPotionEffects,
+                      int cycleTime,
+                      List<PotionEffect> cyclePotionEffects) {
         setEntityType(entityType);
         setDisplayName(displayName);
         setNameVisible(nameVisible);
+        setBabyMob(babyMob);
         setSpawnChance(spawnChance);
         setMaxHealth(maxHealth);
         setAttackDamage(attackDamage);
@@ -98,6 +113,9 @@ public class BossEntity implements Cloneable {
         setExecuteCommandsEnabled(executeCommandsEnabled);
         setCommandsList(commandsList);
         setLootDrops(lootDrops);
+        setSpawnPotionEffects(spawnPotionEffects);
+        setCycleTime(cycleTime);
+        setCyclePotionEffects(cyclePotionEffects);
     }
 
     private void setBossStats() {
@@ -112,9 +130,24 @@ public class BossEntity implements Cloneable {
         entity.getAttribute(Attribute.GENERIC_FOLLOW_RANGE).setBaseValue(getFollowRange());
         entity.setHealth(getMaxHealth());
         entity.setSilent(true);
+        entity.addPotionEffects(spawnPotionEffects);
+        if(entity instanceof Ageable ageable) {
+            if(!isBabyMob() && !ageable.isAdult()) {
+                ageable.setAdult();
+            }
+        }
+        System.out.println(entity.getActivePotionEffects());
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), () -> {
             lastHitAgo++;
         }, 0L,20L);
+        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), () -> {
+            entity.addPotionEffects(cyclePotionEffects);
+            Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> {
+                entity.customName(mm.deserialize(getDisplayName()
+                        .replace("%hp%", df.format(entity.getHealth()))
+                        .replace("%maxHP%", df.format(getMaxHealth()))));
+            });
+        }, cycleTime * 20L, cycleTime * 20L);
     }
 
     //region <PlaySound methods>
