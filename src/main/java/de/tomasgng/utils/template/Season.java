@@ -99,6 +99,7 @@ public class Season {
         if(spawnReason.equals(CreatureSpawnEvent.SpawnReason.EGG))
             return false;
         if(!animalSpawning.containsKey(entity.getType())) {
+            handleBossSpawning(entity);
             if(isBoss(entity))
                 return false;
             handleMobMovement(entity);
@@ -106,13 +107,13 @@ public class Season {
             handleMobArmorBonus(entity);
             handleMobMaxHealth(entity);
             handleMobAttackDamage(entity);
-            handleBossSpawning(entity);
             return false;
         }
         double chanceToSpawn = animalSpawning.get(entity.getType());
         double randomChance = rnd.nextDouble(0, 101);
         if(randomChance <= chanceToSpawn)
             return true;
+        handleBossSpawning(entity);
         if(isBoss(entity))
             return false;
         handleAnimalGrowing(entity);
@@ -120,7 +121,6 @@ public class Season {
         handleMobArmorBonus(entity);
         handleMobMaxHealth(entity);
         handleMobAttackDamage(entity);
-        handleBossSpawning(entity);
         return false;
     }
 

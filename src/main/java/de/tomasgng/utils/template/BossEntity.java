@@ -136,7 +136,6 @@ public class BossEntity implements Cloneable {
                 ageable.setAdult();
             }
         }
-        System.out.println(entity.getActivePotionEffects());
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), () -> {
             lastHitAgo++;
         }, 0L,20L);
