@@ -6,6 +6,7 @@ import lombok.Setter;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.EntityType;
@@ -66,6 +67,19 @@ public class BossEntity implements Cloneable {
     private int cycleTime;
     @Getter @Setter
     private List<PotionEffect> cyclePotionEffects;
+    @Getter @Setter
+    private boolean summoningEnabled;
+    @Getter @Setter
+    private int summoningRadius;
+    @Getter @Setter
+    private int summoningCycleTime;
+    @Getter @Setter
+    private int summoningMinSpawnCount;
+    @Getter @Setter
+    private int summoningMaxSpawnCount;
+    @Getter @Setter
+    private List<EntityType> summoningMobs;
+
     private final Random random = new Random();
     private final DecimalFormat df = new DecimalFormat("0.0");
     private final MiniMessage mm = MiniMessage.miniMessage();
@@ -93,7 +107,13 @@ public class BossEntity implements Cloneable {
                       Map<ItemStack, Double> lootDrops,
                       List<PotionEffect> spawnPotionEffects,
                       int cycleTime,
-                      List<PotionEffect> cyclePotionEffects) {
+                      List<PotionEffect> cyclePotionEffects,
+                      boolean summoningEnabled,
+                      int summoningRadius,
+                      int summoningCycleTime,
+                      int summoningMinSpawnCount,
+                      int summoningMaxSpawnCount,
+                      List<EntityType> summoningMobs) {
         setEntityType(entityType);
         setDisplayName(displayName);
         setNameVisible(nameVisible);
@@ -116,6 +136,12 @@ public class BossEntity implements Cloneable {
         setSpawnPotionEffects(spawnPotionEffects);
         setCycleTime(cycleTime);
         setCyclePotionEffects(cyclePotionEffects);
+        setSummoningEnabled(summoningEnabled);
+        setSummoningRadius(summoningRadius);
+        setSummoningCycleTime(summoningCycleTime);
+        setSummoningMinSpawnCount(summoningMinSpawnCount);
+        setSummoningMaxSpawnCount(summoningMaxSpawnCount);
+        setSummoningMobs(summoningMobs);
     }
 
     private void setBossStats() {
@@ -136,10 +162,18 @@ public class BossEntity implements Cloneable {
                 ageable.setAdult();
             }
         }
-        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), () -> {
+        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
+            if(entity.isDead()) {
+                task.cancel();
+                return;
+            }
             lastHitAgo++;
         }, 0L,20L);
-        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), () -> {
+        Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
+            if(entity.isDead()) {
+                task.cancel();
+                return;
+            }
             entity.addPotionEffects(cyclePotionEffects);
             Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> {
                 entity.customName(mm.deserialize(getDisplayName()
@@ -147,6 +181,24 @@ public class BossEntity implements Cloneable {
                         .replace("%maxHP%", df.format(getMaxHealth()))));
             });
         }, cycleTime * 20L, cycleTime * 20L);
+        if(isSummoningEnabled()) {
+            Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
+                if(entity.isDead()) {
+                    task.cancel();
+                    return;
+                }
+                int mobSpawnCount = random.nextInt(getSummoningMinSpawnCount(), getSummoningMaxSpawnCount()+1);
+                for (int i = 0; i < mobSpawnCount; i++) {
+                    var randomMobIndex = random.nextInt(0, getSummoningMobs().size());
+                    var mobType = getSummoningMobs().get(randomMobIndex);
+                    int randomX = random.nextInt(-getSummoningRadius(), getSummoningRadius()+1);
+                    int randomZ = random.nextInt(-getSummoningRadius(), getSummoningRadius()+1);
+                    int randomY = entity.getWorld().getHighestBlockYAt(entity.getLocation().getBlockX()+randomX, entity.getLocation().getBlockZ()+randomZ);
+                    var spawnLocation = new Location(entity.getWorld(), entity.getLocation().getBlockX()+randomX, randomY+2, entity.getLocation().getBlockZ()+randomZ);
+                    entity.getWorld().spawnEntity(spawnLocation, mobType);
+                }
+            }, getSummoningCycleTime() * 20L, getSummoningCycleTime() * 20L);
+        }
     }
 
     //region <PlaySound methods>
@@ -218,9 +270,9 @@ public class BossEntity implements Cloneable {
         });
     }
 
-    public void handleDeath(EntityDeathEvent event) {
+    public boolean handleDeath(EntityDeathEvent event) {
         if(event.getEntity() != entity)
-            return;
+            return false;
         var killer = entity.getKiller();
 
         event.setDroppedExp(getDroppedXPOnDeath());
@@ -229,7 +281,7 @@ public class BossEntity implements Cloneable {
         playDeathSound();
 
         if(killer == null)
-            return;
+            return true;
         var world = entity.getWorld();
         var loc = entity.getLocation();
         for(var entry : lootDrops.entrySet()) {
@@ -239,10 +291,11 @@ public class BossEntity implements Cloneable {
         }
 
         if(!isExecuteCommandsEnabled())
-            return;
+            return true;
         getCommandsList().forEach(cmd -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", killer.getName()));
         });
+        return true;
     }
     //endregion
 

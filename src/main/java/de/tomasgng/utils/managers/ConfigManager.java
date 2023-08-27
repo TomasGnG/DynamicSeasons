@@ -141,8 +141,6 @@ public class ConfigManager {
             configCfg.set("placeholders.currentSeason.text.summer", "Summer");
             configCfg.set("placeholders.currentSeason.text.fall", "Fall");
             configCfg.set("placeholders.currentSeason.text.winter", "Winter");
-            configCfg.set("updater", true);
-            configCfg.setComments("updater", List.of("Should this plugin update itself if a new version was released?"));
             configCfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
             configCfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
             configCfg.setComments("season_duration", List.of("Visit the wiki for more help: https://github.com/TomasGnG/DynamicSeasons/wiki", "Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
@@ -234,7 +232,19 @@ public class ConfigManager {
         seasonCfg.set("bossSpawning.ZOMBIE.potionEffects.cycle.time", 5);
         seasonCfg.set("bossSpawning.ZOMBIE.potionEffects.cycle.effects.HARM.level", 1);
         seasonCfg.set("bossSpawning.ZOMBIE.potionEffects.cycle.effects.HARM.time", 1);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.enabled", true);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.radius", 5);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.cycleTime", 15);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.minSpawnCount", 1);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.maxSpawnCount", 4);
+        seasonCfg.set("bossSpawning.ZOMBIE.summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
         seasonCfg.set("xpBonus", 20);
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.enabled", List.of("Should this feature be enabled?"));
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.radius", List.of("Spawnradius in blocks"));
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.cycleTime", List.of("The repeating time in seconds"));
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.minSpawnCount", List.of("Minimum spawn count of mobs"));
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.maxSpawnCount", List.of("Maximum spawn count of mobs"));
+        seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.mobs", List.of("Mobs that should spawn -> random mobs from the list will spawn!"));
         seasonCfg.setComments("bossSpawning.ZOMBIE.potionEffects.spawn", List.of("The effects the boss will get when he spawns"));
         seasonCfg.setComments("bossSpawning.ZOMBIE.potionEffects.spawn.INCREASE_DAMAGE", List.of("The PotionEffectType. Here is a list: https://jd.papermc.io/paper/1.20/org/bukkit/potion/PotionEffectType.html#:~:text=Modifier%20and%20Type-,Field,-Description"));
         seasonCfg.setComments("bossSpawning.ZOMBIE.potionEffects.spawn.INCREASE_DAMAGE.level", List.of("The level of the effect"));
@@ -924,6 +934,60 @@ public class ConfigManager {
                 cyclePotionEffects.add(new PotionEffect(potionEffectType, level, time*20));
             }
 
+            if(cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".summoning") == null) {
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.enabled", true);
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.radius", 5);
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.cycleTime", 15);
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.minSpawnCount", 1);
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.maxSpawnCount", 4);
+                cfg.set("bossSpawning." + mobTypeString + ".summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.enabled", List.of("Should this feature be enabled?"));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.radius", List.of("Spawnradius in blocks"));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.cycleTime", List.of("The repeating time in seconds"));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.minSpawnCount", List.of("Minimum spawn count of mobs"));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.maxSpawnCount", List.of("Maximum spawn count of mobs"));
+                cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.mobs", List.of("Mobs that should spawn -> random mobs from the list will spawn!"));
+                save();
+            }
+            boolean summoningEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".summoning.enabled");
+            int summoningRadius = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.radius");
+            int summoningCycleTime = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.cycleTime");
+            int summoningMinSpawnCount = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.minSpawnCount");
+            int summoningMaxSpawnCount = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.maxSpawnCount");
+            List<EntityType> summoningMobs = new ArrayList<>();
+
+            if(summoningRadius <= 0) {
+                logger.severe("[" + season + "] Invalid bossSpawning summoning radius!" +
+                        "\nSeason: " + season);
+                continue;
+            }
+            if(summoningCycleTime <= 0) {
+                logger.severe("[" + season + "] Invalid bossSpawning summoning cycleTime!" +
+                        "\nSeason: " + season);
+                continue;
+            }
+            if(summoningMinSpawnCount < 0) {
+                logger.severe("[" + season + "] Invalid bossSpawning summoning minSpawnCount!" +
+                        "\nSeason: " + season);
+                continue;
+            }
+            if(summoningMaxSpawnCount < 0) {
+                logger.severe("[" + season + "] Invalid bossSpawning summoning maxSpawnCount!" +
+                        "\nSeason: " + season);
+                continue;
+            }
+
+            var tempSummoningMobs = cfg.getStringList("bossSpawning." + mobTypeString + ".summoning.mobs");
+            for(var summoningMobType : tempSummoningMobs) {
+                try {
+                    summoningMobs.add(EntityType.valueOf(summoningMobType.toUpperCase()));
+                } catch (Exception e) {
+                    logger.severe("[" + season + "] Invalid bossSpawning summoning Mob type!" +
+                            "\nSeason: " + season +
+                            "\nMobtype: " + summoningMobType);
+                }
+            }
+
             BossEntity bossEntity = new BossEntity(
                     EntityType.valueOf(mobTypeString),
                     displayName,
@@ -946,7 +1010,13 @@ public class ConfigManager {
                     lootDrops,
                     spawnPotionEffects,
                     cycleTime,
-                    cyclePotionEffects
+                    cyclePotionEffects,
+                    summoningEnabled,
+                    summoningRadius,
+                    summoningCycleTime,
+                    summoningMinSpawnCount,
+                    summoningMaxSpawnCount,
+                    summoningMobs
             );
             bossList.add(bossEntity);
         }

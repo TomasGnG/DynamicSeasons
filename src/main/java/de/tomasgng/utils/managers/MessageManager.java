@@ -39,14 +39,18 @@ public class MessageManager {
 
             cfg.set("prefix", "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|");
             cfg.set("command.noPermission", "%prefix% <gray>You have no permission to use this command.");
-            cfg.set("command.usage", "%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
-                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>" +
-                    "<newline>%prefix% <gray>Usage: <yellow>/dynseasons reload");
+            cfg.set("command.usage",
+                    List.of("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons spawnboss <spring|summer|fall|winter> <bosstype>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons reload"));
             cfg.set("command.seasonAlreadyActive", "%prefix% <gray>This season is already active.");
             cfg.set("command.seasonChanged", "%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.");
             cfg.set("command.invalidNumberFormat", "%prefix% <gray>Invalid number!");
             cfg.set("command.remainingTimeSet", "%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!");
             cfg.set("command.reload", "%prefix% <green>The plugin message.yml and config.yml were reloaded!");
+            cfg.set("command.bossSpawned", "%prefix% <green>You spawned a boss!");
+            cfg.set("command.noBossFound", "%prefix% <red>No boss found!");
             cfg.setComments("prefix", List.of("Here you can change the message outputs.",
                     "The messages need to be in MiniMessage format.",
                     "MiniMessage Help: https://docs.advntr.dev/minimessage/index.html",
@@ -141,22 +145,36 @@ public class MessageManager {
     }
 
     public Component getCMDUsageComponent() {
-        var msg = cfg.getString("command.usage");
+        var msgList = cfg.getStringList("command.usage");
         var defaultCMDUsage = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>" +
                 "<br>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>" +
+                "<br>%prefix% <gray>Usage: <yellow>/dynseasons spawnboss <spring|summer|fall|winter> <bosstype>" +
                 "<br>%prefix% <gray>Usage: <yellow>/dynseasons reload", null, null, -1));
-        if(msg == null) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid usage message.");
+        if(msgList.isEmpty()) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid usage message. Creating entry in message.yml...");
+            cfg.set("command.usage",
+                    List.of("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons spawnboss <spring|summer|fall|winter> <bosstype>",
+                            "%prefix% <gray>Usage: <yellow>/dynseasons reload"));
+            save();
             return defaultCMDUsage;
         }
-        msg = replaceAllPlaceholders(msg, null, null, -1);
-        try {
-            mm.deserialize(msg);
-        } catch (Exception e) {
-            DynamicSeasons.getInstance().getLogger().severe("Invalid usage format.\nError: " + e.getMessage());
-            return defaultCMDUsage;
+        Component msg = Component.text("");
+        for (String s : msgList) {
+            try {
+                if(msgList.indexOf(s) == msgList.size()-1) {
+                    msg = msg.append(mm.deserialize(replaceAllPlaceholders(s, null, null, -1)));
+                    continue;
+                }
+                msg = msg.append(mm.deserialize(replaceAllPlaceholders(s, null, null, -1))).appendNewline();
+            } catch (Exception e) {
+                DynamicSeasons.getInstance().getLogger().severe("Invalid usage format.\nMessage: " + s + "\nError: " + e.getMessage());
+                return defaultCMDUsage;
+            }
         }
-        return mm.deserialize(msg);
+
+        return msg;
     }
 
     public Component getCMDSeasonAlreadyActiveComponent() {
@@ -318,6 +336,44 @@ public class MessageManager {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid reload format.\nError: " + e.getMessage());
+            return defaultReturn;
+        }
+        return mm.deserialize(msg);
+    }
+
+    public Component getCMDBossSpawnedComponent() {
+        var msg = cfg.getString("command.bossSpawned");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <green>You spawned a boss!", null, null, -1));
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid bossSpawned message. Creating entry in message.yml...");
+            cfg.set("command.bossSpawned", "%prefix% <green>You spawned a boss!");
+            save();
+            return defaultReturn;
+        }
+        msg = replaceAllPlaceholders(msg, null, null, -1);
+        try {
+            mm.deserialize(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid bossSpawned format.\nError: " + e.getMessage());
+            return defaultReturn;
+        }
+        return mm.deserialize(msg);
+    }
+
+    public Component getCMDNoBossFoundComponent() {
+        var msg = cfg.getString("command.noBossFound");
+        var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <red>No boss found!", null, null, -1));
+        if(msg == null) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid noBossFound message. Creating entry in message.yml...");
+            cfg.set("command.noBossFound", "%prefix% <red>No boss found!");
+            save();
+            return defaultReturn;
+        }
+        msg = replaceAllPlaceholders(msg, null, null, -1);
+        try {
+            mm.deserialize(msg);
+        } catch (Exception e) {
+            DynamicSeasons.getInstance().getLogger().severe("Invalid noBossFound format.\nError: " + e.getMessage());
             return defaultReturn;
         }
         return mm.deserialize(msg);

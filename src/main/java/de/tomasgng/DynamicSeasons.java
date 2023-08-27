@@ -12,10 +12,11 @@ import lombok.Getter;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.IOException;
-import java.net.URL;
+import javax.annotation.Nullable;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +42,6 @@ public final class DynamicSeasons extends JavaPlugin {
 
         register();
         updateCheck(false);
-        updatePlugin();
     }
 
     private void register() {
@@ -56,6 +56,7 @@ public final class DynamicSeasons extends JavaPlugin {
         manager.registerEvents(new StructureGrowListener(), this);
         manager.registerEvents(new EntityDeathListener(), this);
         manager.registerEvents(new EntityDamageByEntityListener(), this);
+        manager.registerEvents(new PlayerJoinListener(), this);
 
         getCommand("dynamicseasons").setExecutor(new DynamicSeasonsCMD());
 
@@ -74,48 +75,53 @@ public final class DynamicSeasons extends JavaPlugin {
             getLogger().warning("PlaceholderAPI not found. Placeholders will be disabled.");
     }
 
-    private boolean updateCheck(boolean silent) {
+    public String updateCheck(boolean silent) {
         var currentVersion = getDescription().getVersion();
         String latestVersion = "";
 
         try {
-            var url = new URL("https://pastebin.com/raw/DZXYPzR7");
+            var url = new URI("https://pastebin.com/raw/DZXYPzR7").toURL();
             var scanner = new Scanner(url.openStream());
             var sb = new StringBuilder();
             while(scanner.hasNext()) {
                 sb.append(scanner.next());
             }
             latestVersion = sb.toString();
-        } catch (IOException e) {
+        } catch (Exception e) {
             getLogger().severe("Update checker failed.");
-            return true;
+            return null;
         }
         if(!silent) {
             if(currentVersion.equalsIgnoreCase(latestVersion)) {
                 Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Using the latest version(" + currentVersion + ")."));
                 Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Thank you for using my plugin ;)"));
-                return true;
+                return null;
             }
             Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Using an outdated version(" + currentVersion + "). Newest version " + latestVersion));
             Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Download: https://www.spigotmc.org/resources/dynamicseasons-%E2%8C%9B-enhance-your-survival-experience-%E2%9C%85.111362/"));
-            return false;
+            return latestVersion;
         }
-        return currentVersion.equalsIgnoreCase(latestVersion);
+        if(currentVersion.equalsIgnoreCase(latestVersion))
+            return null;
+        return latestVersion;
     }
 
-    private void updatePlugin() {
-        if(!configManager.updaterIsActive())
-            return;
-        if(updateCheck(true))
-            return;
+    public void updatePlugin(boolean force, @Nullable Player player) {
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            if(!force)
+                if(!configManager.updaterIsActive()) return;
+            if(updateCheck(true) == null) return;
 
-        var downloadFile = Path.of(getServer().getUpdateFolderFile().getPath(),"DynamicSeasons.jar").toFile();
-        try {
-            FileUtils.copyURLToFile(new URL("https://api.spiget.org/v2/resources/111362/download"), downloadFile, 3000, 3000);
-            Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>The latest version was successfully downloaded and will be used on the next restart!"));
-        } catch (IOException e) {
-            getLogger().severe("Download error!\nError: " + e.getMessage());
-        }
+            var downloadFile = Path.of(getServer().getUpdateFolderFile().getPath(),"DynamicSeasons.jar").toFile();
+            try {
+                FileUtils.copyURLToFile(new URI("https://api.spiget.org/v2/resources/111362/download").toURL(), downloadFile, 3000, 3000);
+                Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>The latest version was successfully downloaded and will be used on the next restart!"));
+                if(player != null)
+                    player.sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>The latest version was successfully downloaded and will be used on the next restart!"));
+            } catch (Exception e) {
+                getLogger().severe("Download error!\nError: " + e.getMessage());
+            }
+        });
     }
 
     @Override

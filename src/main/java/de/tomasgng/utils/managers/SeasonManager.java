@@ -105,4 +105,8 @@ public class SeasonManager {
     public String getFormattedDuration() {
         return DurationFormatUtils.formatDuration(config.getRemainingTimeFromDatabase()*1000L, config.getDurationPlacerholderRawFormat());
     }
+
+    public Season getSeasonInstanceByType(SeasonType seasonType) {
+        return seasons.get(seasonType);
+    }
 }

@@ -99,7 +99,7 @@ public class Season {
         if(spawnReason.equals(CreatureSpawnEvent.SpawnReason.EGG))
             return false;
         if(!animalSpawning.containsKey(entity.getType())) {
-            handleBossSpawning(entity);
+            handleBossSpawning(entity, false);
             if(isBoss(entity))
                 return false;
             handleMobMovement(entity);
@@ -113,7 +113,7 @@ public class Season {
         double randomChance = rnd.nextDouble(0, 101);
         if(randomChance <= chanceToSpawn)
             return true;
-        handleBossSpawning(entity);
+        handleBossSpawning(entity, false);
         if(isBoss(entity))
             return false;
         handleAnimalGrowing(entity);
@@ -243,8 +243,8 @@ public class Season {
         return false;
     }
 
-    public void handleBossSpawning(LivingEntity entity) {
-        if(!isValidWorld(entity.getWorld()))
+    public void handleBossSpawning(LivingEntity entity, boolean forceBoss) {
+        if(!isValidWorld(entity.getWorld()) && !forceBoss)
             return;
         var type = entity.getType();
         BossEntity boss = null;
@@ -260,11 +260,15 @@ public class Season {
             if(nearbyEntity.getType() == EntityType.PLAYER)
                 playerIsNearby = true;
         }
-        if(!playerIsNearby)
+        if(!playerIsNearby && !forceBoss)
             return;
         double randomChance = rnd.nextDouble(0, 101);
         double bossSpawnChance = boss.getSpawnChance();
-        if(randomChance <= bossSpawnChance) {
+        if(randomChance <= bossSpawnChance && !forceBoss) {
+            activeBosses.add(boss);
+            boss.setEntity(entity);
+            boss.handleSpawn();
+        } else if(forceBoss) {
             activeBosses.add(boss);
             boss.setEntity(entity);
             boss.handleSpawn();
@@ -272,9 +276,7 @@ public class Season {
     }
 
     public void handleBossDeath(EntityDeathEvent event) {
-        activeBosses.forEach(boss -> {
-            boss.handleDeath(event);
-        });
+        activeBosses.removeIf(boss -> boss.handleDeath(event));
     }
 
     public void handleBossDamageEvent(EntityDamageByEntityEvent event) {
