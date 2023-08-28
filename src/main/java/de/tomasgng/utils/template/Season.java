@@ -35,6 +35,7 @@ public class Season {
     private final List<LootDrop> lootDrops;
     private final List<BossEntity> bossList;
     private final int xpBonus;
+    private final Particles particles;
     private final Random rnd = new Random();
     private final List<BossEntity> activeBosses = new ArrayList<>();
 
@@ -52,7 +53,8 @@ public class Season {
                   List<PotionEffect> potionEffects,
                   List<LootDrop> lootDrops,
                   List<BossEntity> bossList,
-                  int xpBonus) {
+                  int xpBonus,
+                  Particles particles) {
         this.worlds = worlds;
         this.weather = weather;
         this.weatherTypes = weatherTypes;
@@ -68,6 +70,7 @@ public class Season {
         this.lootDrops = lootDrops;
         this.bossList = bossList;
         this.xpBonus = xpBonus;
+        this.particles = particles;
     }
 
     private boolean isValidWorld(World world) {
@@ -79,10 +82,16 @@ public class Season {
             world.setGameRule(GameRule.RANDOM_TICK_SPEED, randomTickSpeed);
         }
         startPotionEffectTimer();
+        if(particles != null) {
+            particles.startParticleTimer();
+        }
     }
 
     public void stop() {
         stopPotionEffectTimer();
+        if(particles != null) {
+            particles.stopParticleTimer();
+        }
     }
 
     public boolean handleWeatherUpdate(World world, WeatherType weatherTo) {

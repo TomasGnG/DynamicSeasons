@@ -5,6 +5,7 @@ import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
 import de.tomasgng.utils.template.BossEntity;
 import de.tomasgng.utils.template.ItemBuilder;
+import de.tomasgng.utils.template.Particles;
 import lombok.SneakyThrows;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.*;
@@ -238,7 +239,23 @@ public class ConfigManager {
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.minSpawnCount", 1);
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.maxSpawnCount", 4);
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
+        seasonCfg.set("particles.enabled", true);
+        seasonCfg.set("particles.offsetX", 5);
+        seasonCfg.set("particles.offsetY", 5);
+        seasonCfg.set("particles.offsetZ", 5);
+        seasonCfg.set("particles.spawnTime", 5);
+        seasonCfg.set("particles.speed", 0.0);
+        seasonCfg.set("particles.particle.SNOWFLAKE.minSpawnAmount", 10);
+        seasonCfg.set("particles.particle.SNOWFLAKE.maxSpawnAmount", 40);
         seasonCfg.set("xpBonus", 20);
+        seasonCfg.setInlineComments("particles.enabled", List.of("Should this feature be enabled?"));
+        seasonCfg.setInlineComments("particles.offsetX", List.of("spread the spawned particle"));
+        seasonCfg.setInlineComments("particles.offsetY", List.of("spread the spawned particle"));
+        seasonCfg.setInlineComments("particles.offsetZ", List.of("spread the spawned particle"));
+        seasonCfg.setInlineComments("particles.spawnTime", List.of("Repeating time in ticks (20 ticks = 1 second)"));
+        seasonCfg.setInlineComments("particles.speed", List.of("Speed of the particles"));
+        seasonCfg.setInlineComments("particles.particle.SNOWFLAKE.minSpawnAmount", List.of("Minimum spawn amount of the particle"));
+        seasonCfg.setInlineComments("particles.particle.SNOWFLAKE.maxSpawnAmount", List.of("Maximum spawn amount of the particle"));
         seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.enabled", List.of("Should this feature be enabled?"));
         seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.radius", List.of("Spawnradius in blocks"));
         seasonCfg.setInlineComments("bossSpawning.ZOMBIE.summoning.cycleTime", List.of("The repeating time in seconds"));
@@ -1128,6 +1145,74 @@ public class ConfigManager {
             return 0;
         }
         return xpBonus;
+    }
+
+    public Particles getParticles(String season) {
+        var cfg = getCfgFromSeason(season);
+        if(!cfg.isSet("particles")) {
+            cfg.set("particles.enabled", true);
+            cfg.set("particles.offsetX", 5);
+            cfg.set("particles.offsetY", 5);
+            cfg.set("particles.offsetZ", 5);
+            cfg.set("particles.spawnTime", 5);
+            cfg.set("particles.speed", 0.0);
+            cfg.set("particles.particle.SNOWFLAKE.minSpawnAmount", 10);
+            cfg.set("particles.particle.SNOWFLAKE.maxSpawnAmount", 40);
+            cfg.setInlineComments("particles.enabled", List.of("Should this feature be enabled?"));
+            cfg.setInlineComments("particles.offsetX", List.of("spread the spawned particle"));
+            cfg.setInlineComments("particles.offsetY", List.of("spread the spawned particle"));
+            cfg.setInlineComments("particles.offsetZ", List.of("spread the spawned particle"));
+            cfg.setInlineComments("particles.spawnTime", List.of("Repeating time in ticks (20 ticks = 1 second)"));
+            cfg.setInlineComments("particles.speed", List.of("Speed of the particles"));
+            cfg.setInlineComments("particles.particle.SNOWFLAKE.minSpawnAmount", List.of("Minimum spawn amount of the particle"));
+            cfg.setInlineComments("particles.particle.SNOWFLAKE.maxSpawnAmount", List.of("Maximum spawn amount of the particle"));
+            save();
+        }
+        var particlesEnabled = cfg.getBoolean("particles.enabled");
+        var offsetX = cfg.getInt("particles.offsetX");
+        var offsetY = cfg.getInt("particles.offsetY");
+        var offsetZ = cfg.getInt("particles.offsetZ");
+        var spawnTime = cfg.getInt("particles.spawnTime");
+        var speed = cfg.getDouble("particles.speed");
+        Map<Particle, Integer[]> particleMap = new HashMap<>();
+
+        if(offsetX < 0 || offsetY < 0 || offsetZ < 0) {
+            logger.severe("[" + season + "] particle offset cant be below 0!");
+            return null;
+        }
+        if(spawnTime < 0) {
+            logger.severe("[" + season + "] particle spawnTime cant be below 0!");
+            return null;
+        }
+
+        var particleKeys = cfg.getConfigurationSection("particles.particle").getKeys(false);
+        for(var particleString : particleKeys) {
+            Particle particle;
+            Integer[] spawnAmounts = new Integer[2];
+            try {
+                particle = Particle.valueOf(particleString);
+            } catch (IllegalArgumentException e) {
+                logger.severe("[" + season + "] Invalid particle type!");
+                continue;
+            }
+            try {
+                spawnAmounts[0] = Integer.parseInt(cfg.getString("particles.particle." + particleString + ".minSpawnAmount"));
+                spawnAmounts[1] = Integer.parseInt(cfg.getString("particles.particle." + particleString + ".maxSpawnAmount"));
+            } catch (NumberFormatException e) {
+                logger.severe("[" + season + "] Invalid particle spawnAmount for " + particleString);
+                continue;
+            }
+            particleMap.put(particle, spawnAmounts);
+        }
+
+        return new Particles(
+                particlesEnabled,
+                offsetX,
+                offsetY,
+                offsetZ,
+                spawnTime,
+                speed,
+                particleMap);
     }
 
     private String checkMMFormat(String mmString) {

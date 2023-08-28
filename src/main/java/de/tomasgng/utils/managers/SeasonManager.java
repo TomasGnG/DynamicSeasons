@@ -46,7 +46,8 @@ public class SeasonManager {
                     config.getPotionEffects(seasonName),
                     config.getLootDrops(seasonName),
                     config.getBossList(seasonName),
-                    config.getXPBonus(seasonName));
+                    config.getXPBonus(seasonName),
+                    config.getParticles(seasonName));
 
             seasons.put(seasonType, season);
         }
@@ -56,6 +57,7 @@ public class SeasonManager {
     }
 
     public void reload() {
+        currentSeasonInstance.stop();
         initialize();
     }
 
