@@ -142,6 +142,10 @@ public class ConfigManager {
             configCfg.set("placeholders.currentSeason.text.summer", "Summer");
             configCfg.set("placeholders.currentSeason.text.fall", "Fall");
             configCfg.set("placeholders.currentSeason.text.winter", "Winter");
+            configCfg.set("command.name", "dynamicseasons");
+            configCfg.set("command.description", "Main DynamicSeasons command.");
+            configCfg.set("command.permission", "dynamicseasons.cmd.use");
+            configCfg.set("command.alias", List.of("dynseasons"));
             configCfg.setComments("placeholders.duration.format", List.of("Use your own date format. For help use this site: https://help.gooddata.com/cloudconnect/manual/date-and-time-format.html#:~:text=Table%C2%A028.5.%C2%A0Date%20and%20Time%20Format%20Patterns%20and%20Results%20(Java)"));
             configCfg.setComments("worlds", List.of("Specify the worlds where the seasons should work."));
             configCfg.setComments("season_duration", List.of("Visit the wiki for more help: https://github.com/TomasGnG/DynamicSeasons/wiki", "Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
@@ -418,8 +422,30 @@ public class ConfigManager {
         return worlds;
     }
 
-    public boolean updaterIsActive() {
-        return configCfg.getBoolean("updater");
+    public String getCMDName() {
+        if(!configCfg.isSet("command.name")) {
+            configCfg.set("command.name", "dynamicseasons");
+            configCfg.set("command.description", "Main DynamicSeasons command.");
+            configCfg.set("command.permission", "dynamicseasons.cmd.use");
+            configCfg.set("command.alias", List.of("dynseasons"));
+            save();
+        }
+        var name = configCfg.getString("command.name");
+        return name == null ? "dynamicseasons" : name;
+    }
+
+    public String getCMDDescription() {
+        var description = configCfg.getString("command.description");
+        return description == null ? "Main DynamicSeasons command." : description;
+    }
+
+    public String getCMDPermission() {
+        var permission = configCfg.getString("command.permission");
+        return permission == null ? "dynamicseasons.cmd.use" : permission;
+    }
+
+    public List<String> getCMDAliases() {
+        return configCfg.getStringList("command.alias");
     }
 
     public boolean getWeather(String season) {

@@ -44,6 +44,14 @@ public final class DynamicSeasons extends JavaPlugin {
         updateCheck(false);
     }
 
+    @Override
+    public void onDisable() {
+        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new DurationExpansion().unregister();
+            new CurrentSeasonExpansion().unregister();
+        }
+    }
+
     private void register() {
         var manager = Bukkit.getPluginManager();
 
@@ -58,7 +66,7 @@ public final class DynamicSeasons extends JavaPlugin {
         manager.registerEvents(new EntityDamageByEntityListener(), this);
         manager.registerEvents(new PlayerJoinListener(), this);
 
-        getCommand("dynamicseasons").setExecutor(new DynamicSeasonsCMD());
+        getServer().getCommandMap().register("dynamicseasons", new DynamicSeasonsCMD());
 
         Metrics metrics = new Metrics(this, 19158);
         metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", () -> {
@@ -108,8 +116,6 @@ public final class DynamicSeasons extends JavaPlugin {
 
     public void updatePlugin(boolean force, @Nullable Player player) {
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            if(!force)
-                if(!configManager.updaterIsActive()) return;
             if(updateCheck(true) == null) return;
 
             var downloadFile = Path.of(getServer().getUpdateFolderFile().getPath(),"DynamicSeasons.jar").toFile();
@@ -122,13 +128,5 @@ public final class DynamicSeasons extends JavaPlugin {
                 getLogger().severe("Download error!\nError: " + e.getMessage());
             }
         });
-    }
-
-    @Override
-    public void onDisable() {
-        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new DurationExpansion().unregister();
-            new CurrentSeasonExpansion().unregister();
-        }
     }
 }

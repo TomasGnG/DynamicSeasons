@@ -7,29 +7,33 @@ import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
+public class DynamicSeasonsCMD extends Command {
 
     SeasonManager seasonManager = DynamicSeasons.getInstance().getSeasonManager();
     MessageManager messageManager = DynamicSeasons.getInstance().getMessageManager();
     ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
 
-    @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String string, @NotNull String[] args) {
-        Player player = (Player) commandSender;
+    public DynamicSeasonsCMD() {
+        super(DynamicSeasons.getInstance().getConfigManager().getCMDName(),
+                DynamicSeasons.getInstance().getConfigManager().getCMDDescription(),
+                "",
+                DynamicSeasons.getInstance().getConfigManager().getCMDAliases());
+    }
 
-        if(!player.hasPermission("dynamicseasons.command.use")) {
+    @Override
+    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+        Player player = (Player) sender;
+
+        if(!player.hasPermission(configManager.getCMDPermission())) {
             player.sendMessage(messageManager.getCMDNoPermissionComponent());
             return false;
         }
@@ -110,33 +114,28 @@ public class DynamicSeasonsCMD implements CommandExecutor, TabExecutor {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        if(command.getName().equalsIgnoreCase("dynamicseasons") ||
-                command.getName().equalsIgnoreCase("dynseasons") ||
-                command.getName().equalsIgnoreCase("dseasons")) {
-            if(!commandSender.hasPermission("dynamicseasons.command.use"))
-                return null;
-            if(args.length == 1)
-                return List.of("setseason", "setremainingtime", "reload", "update", "spawnboss");
-            if(args.length == 2) {
-                if(args[0].equalsIgnoreCase("setseason") || args[0].equalsIgnoreCase("spawnboss"))
-                    return List.of("spring", "summer", "fall", "winter");
-                if(args[0].equalsIgnoreCase("setremainingtime")) {
-                    commandSender.sendActionBar(Component.text("Current remaining time in seconds: " + seasonManager.getRemainingTime()));
-                }
+    public @NotNull List<String> tabComplete(@NotNull CommandSender commandSender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
+        if(!commandSender.hasPermission(configManager.getCMDPermission()))
+            return List.of();
+        if(args.length == 1)
+            return List.of("setseason", "setremainingtime", "reload", "update", "spawnboss");
+        if(args.length == 2) {
+            if(args[0].equalsIgnoreCase("setseason") || args[0].equalsIgnoreCase("spawnboss"))
+                return List.of("spring", "summer", "fall", "winter");
+            if(args[0].equalsIgnoreCase("setremainingtime")) {
+                commandSender.sendActionBar(Component.text("Current remaining time in seconds: " + seasonManager.getRemainingTime()));
             }
-            if(args.length == 3) {
-                if(args[0].equalsIgnoreCase("spawnboss") && List.of("spring", "summer", "fall", "winter").contains(args[1])) {
-                    List<String> bosses = new ArrayList<>();
-                    var bossList = configManager.getBossList(args[1]);
-                    for(var boss : bossList) {
-                        bosses.add(boss.getEntityType().name());
-                    }
-                    return bosses;
-                }
-            }
-            return null;
         }
-        return null;
+        if(args.length == 3) {
+            if(args[0].equalsIgnoreCase("spawnboss") && List.of("spring", "summer", "fall", "winter").contains(args[1])) {
+                List<String> bosses = new ArrayList<>();
+                var bossList = configManager.getBossList(args[1]);
+                for(var boss : bossList) {
+                    bosses.add(boss.getEntityType().name());
+                }
+                return bosses;
+            }
+        }
+        return List.of();
     }
 }
