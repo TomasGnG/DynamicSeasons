@@ -9,11 +9,14 @@ import de.tomasgng.utils.managers.ConfigManager;
 import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.reflections.Reflections;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -53,18 +56,7 @@ public final class DynamicSeasons extends JavaPlugin {
     }
 
     private void register() {
-        var manager = Bukkit.getPluginManager();
-
-        manager.registerEvents(new CreatureSpawnListener(), this);
-        manager.registerEvents(new PlayerPickupExperienceListener(), this);
-        manager.registerEvents(new ThunderChangeListener(), this);
-        manager.registerEvents(new WeatherChangeListener(), this);
-        manager.registerEvents(new BlockGrowListener(), this);
-        manager.registerEvents(new BlockSpreadListener(), this);
-        manager.registerEvents(new StructureGrowListener(), this);
-        manager.registerEvents(new EntityDeathListener(), this);
-        manager.registerEvents(new EntityDamageByEntityListener(), this);
-        manager.registerEvents(new PlayerJoinListener(), this);
+        registerListener();
 
         getServer().getCommandMap().register("dynamicseasons", new DynamicSeasonsCMD());
 
@@ -81,6 +73,19 @@ public final class DynamicSeasons extends JavaPlugin {
             new CurrentSeasonExpansion().register();
         } else
             getLogger().warning("PlaceholderAPI not found. Placeholders will be disabled.");
+    }
+
+    @SneakyThrows
+    private void registerListener() {
+        var manager = Bukkit.getPluginManager();
+
+        Reflections reflections = new Reflections("de.tomasgng.listeners");
+
+        for (Class<? extends Listener> aClass : reflections.getSubTypesOf(Listener.class)) {
+            Listener listener = aClass.getDeclaredConstructor().newInstance();
+
+            manager.registerEvents(listener, this);
+        }
     }
 
     public String updateCheck(boolean silent) {
