@@ -31,6 +31,7 @@ public class SeasonManager {
     private void initialize() {
         for(var seasonName : List.of("spring", "summer", "fall", "winter")) {
             SeasonType seasonType = SeasonType.valueOf(seasonName.toUpperCase());
+
             Season season = new Season(
                     config.getAllowedWorlds(),
                     config.getWeather(seasonName),
@@ -51,6 +52,7 @@ public class SeasonManager {
 
             seasons.put(seasonType, season);
         }
+
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
         currentSeasonInstance = seasons.get(currentSeason);
         currentSeasonInstance.start();
@@ -65,6 +67,7 @@ public class SeasonManager {
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
             config.decreaseRemainingTime();
             remainingTime = config.getRemainingTimeFromDatabase();
+
             if(remainingTime <= 0) {
                 changeCurrentSeason();
                 config.resetRemainingTime();
@@ -77,12 +80,16 @@ public class SeasonManager {
         var messageManager = DynamicSeasons.getInstance().getMessageManager();
         List<SeasonType> seasonTypes = Arrays.asList(SeasonType.values());
         var nextInt = seasonTypes.indexOf(currentSeason)+1;
+
         if(nextInt > 3)
             nextInt = 0;
+
         if(messageManager.isSeasonChangeBroadcastEnabled())
             Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
+
         if(messageManager.isSeasonChangeTitleEnabled())
             Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonTypes.get(nextInt)));
+
         currentSeasonInstance.stop();
         config.updateCurrentSeason(seasonTypes.get(nextInt));
         currentSeason = config.getCurrentSeasonTypeFromDatabase();
@@ -92,10 +99,13 @@ public class SeasonManager {
 
     public void changeCurrentSeason(SeasonType seasonType) {
         var messageManager = DynamicSeasons.getInstance().getMessageManager();
+
         if(messageManager.isSeasonChangeBroadcastEnabled())
             Bukkit.broadcast(messageManager.getSeasonChangeBroadcastComponent(getCurrentSeason(), seasonType));
+
         if(messageManager.isSeasonChangeTitleEnabled())
             Bukkit.getServer().showTitle(messageManager.getSeasonChangeTitleComponent(getCurrentSeason(), seasonType));
+
         currentSeasonInstance.stop();
         config.resetRemainingTime();
         config.updateCurrentSeason(seasonType);
