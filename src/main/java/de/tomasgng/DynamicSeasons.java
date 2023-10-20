@@ -9,6 +9,8 @@ import de.tomasgng.utils.managers.ConfigManager;
 import de.tomasgng.utils.managers.MessageManager;
 import de.tomasgng.utils.managers.SeasonManager;
 import lombok.Getter;
+import lombok.Setter;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
@@ -32,6 +34,10 @@ public final class DynamicSeasons extends JavaPlugin {
     private SeasonManager seasonManager;
     @Getter
     private MessageManager messageManager;
+    @Getter @Setter
+    private boolean PLUGIN_DISABLED = false;
+    @Getter @Setter
+    private Component DISABLED_MESSAGE;
 
     @Override
     public void onEnable() {
@@ -68,7 +74,8 @@ public final class DynamicSeasons extends JavaPlugin {
 
         getServer().getCommandMap().register("dynamicseasons", new DynamicSeasonsCMD());
 
-        Metrics metrics = new Metrics(this, 19158);
+        var metrics = new Metrics(this, 19158);
+
         metrics.addCustomChart(new Metrics.MultiLineChart("players_and_servers", () -> {
             Map<String, Integer> valueMap = new HashMap<>();
             valueMap.put("servers", 1);
@@ -91,37 +98,45 @@ public final class DynamicSeasons extends JavaPlugin {
             var url = new URI("https://pastebin.com/raw/DZXYPzR7").toURL();
             var scanner = new Scanner(url.openStream());
             var sb = new StringBuilder();
+
             while(scanner.hasNext()) {
                 sb.append(scanner.next());
             }
+
             latestVersion = sb.toString();
         } catch (Exception e) {
             getLogger().severe("Update checker failed.");
             return null;
         }
+
         if(!silent) {
             if(currentVersion.equalsIgnoreCase(latestVersion)) {
                 Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Using the latest version(" + currentVersion + ")."));
                 Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>Thank you for using my plugin ;)"));
                 return null;
             }
+
             Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Using an outdated version(" + currentVersion + "). Newest version " + latestVersion));
             Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <yellow>Download: https://www.spigotmc.org/resources/dynamicseasons-%E2%8C%9B-enhance-your-survival-experience-%E2%9C%85.111362/"));
             return latestVersion;
         }
+
         if(currentVersion.equalsIgnoreCase(latestVersion))
             return null;
+
         return latestVersion;
     }
 
-    public void updatePlugin(boolean force, @Nullable Player player) {
+    public void updatePlugin(@Nullable Player player) {
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
             if(updateCheck(true) == null) return;
 
             var downloadFile = Path.of(getServer().getUpdateFolderFile().getPath(),"DynamicSeasons.jar").toFile();
+
             try {
                 FileUtils.copyURLToFile(new URI("https://api.spiget.org/v2/resources/111362/download").toURL(), downloadFile, 3000, 3000);
                 Bukkit.getConsoleSender().sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>The latest version was successfully downloaded and will be used on the next restart!"));
+
                 if(player != null)
                     player.sendMessage(MiniMessage.miniMessage().deserialize("<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>| <green>The latest version was successfully downloaded and will be used on the next restart!"));
             } catch (Exception e) {
