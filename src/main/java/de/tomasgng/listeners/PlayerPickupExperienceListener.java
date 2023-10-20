@@ -11,6 +11,7 @@ public class PlayerPickupExperienceListener implements Listener {
     public void on(PlayerPickupExperienceEvent event) {
         var xpOrb = event.getExperienceOrb();
         var xp = xpOrb.getExperience();
+
         xpOrb.setExperience(DynamicSeasons.getInstance().getSeasonManager().getCurrentSeasonInstance().handleXPBonus(xp));
     }
 
