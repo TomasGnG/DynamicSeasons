@@ -6,7 +6,7 @@
 
     <groupId>de.tomasgng</groupId>
     <artifactId>DynamicSeasons</artifactId>
-    <version>1.9.6</version>
+    <version>1.9.7</version>
     <packaging>jar</packaging>
 
     <name>DynamicSeasons</name>
@@ -80,7 +80,7 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.1-R0.1-SNAPSHOT</version>
+            <version>1.20.2-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
