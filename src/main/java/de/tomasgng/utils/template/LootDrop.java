@@ -1,4 +1,4 @@
-package de.tomasgng.utils.managers;
+package de.tomasgng.utils.template;
 
 import lombok.Getter;
 import org.bukkit.entity.EntityType;
