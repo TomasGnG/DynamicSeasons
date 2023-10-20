@@ -18,9 +18,9 @@ import java.util.List;
 
 public class DynamicSeasonsCMD extends Command {
 
-    SeasonManager seasonManager = DynamicSeasons.getInstance().getSeasonManager();
-    MessageManager messageManager = DynamicSeasons.getInstance().getMessageManager();
-    ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
+    private final SeasonManager seasonManager = DynamicSeasons.getInstance().getSeasonManager();
+    private final MessageManager messageManager = DynamicSeasons.getInstance().getMessageManager();
+    private final ConfigManager configManager = DynamicSeasons.getInstance().getConfigManager();
 
     public DynamicSeasonsCMD() {
         super(DynamicSeasons.getInstance().getConfigManager().getCMDName(),
@@ -37,14 +37,20 @@ public class DynamicSeasonsCMD extends Command {
             player.sendMessage(messageManager.getCMDNoPermissionComponent());
             return false;
         }
+
+        if(DynamicSeasons.getInstance().isPLUGIN_DISABLED())
+            player.sendMessage(DynamicSeasons.getInstance().getDISABLED_MESSAGE());
+
         if(args.length == 0) {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
+
         if(args.length == 1 && args[0].equalsIgnoreCase("update")) {
-            DynamicSeasons.getInstance().updatePlugin(true, player);
+            DynamicSeasons.getInstance().updatePlugin(player);
             return false;
         }
+
         if(!args[0].equalsIgnoreCase("setseason")
                 && !args[0].equalsIgnoreCase("setremainingtime")
                 && !args[0].equalsIgnoreCase("reload")
@@ -52,19 +58,24 @@ public class DynamicSeasonsCMD extends Command {
             player.sendMessage(messageManager.getCMDUsageComponent());
             return false;
         }
+
         if(args.length == 3 && args[0].equalsIgnoreCase("spawnboss")) {
             if(!List.of("spring", "summer", "fall", "winter").contains(args[1].toLowerCase())) {
                 player.sendMessage(messageManager.getCMDUsageComponent());
                 return false;
             }
+
             EntityType mobType;
+
             try {
                 mobType = EntityType.valueOf(args[2]);
             } catch (Exception e) {
                 player.sendMessage(messageManager.getCMDNoBossFoundComponent());
                 return false;
             }
+
             var bossList = configManager.getBossList(args[1]);
+
             for(var boss : bossList) {
                 if(boss.getEntityType().equals(mobType)) {
                     seasonManager.getSeasonInstanceByType(SeasonType.valueOf(args[1].toUpperCase()))
@@ -73,35 +84,44 @@ public class DynamicSeasonsCMD extends Command {
                     return false;
                 }
             }
+
             player.sendMessage(messageManager.getCMDNoBossFoundComponent());
             return false;
         }
+
         if(args.length == 2 && args[0].equalsIgnoreCase("setseason")) {
             if(!List.of("spring", "summer", "fall", "winter").contains(args[1].toLowerCase())) {
                 player.sendMessage(messageManager.getCMDUsageComponent());
                 return false;
             }
+
             SeasonType season = SeasonType.valueOf(args[1].toUpperCase());
+
             if(seasonManager.getCurrentSeason() == season) {
                 player.sendMessage(messageManager.getCMDSeasonAlreadyActiveComponent());
                 return false;
             }
+
             player.sendMessage(messageManager.getCMDSeasonChangedComponent(seasonManager.getCurrentSeason(), season));
             seasonManager.changeCurrentSeason(season);
             return false;
         }
+
         if(args.length == 2 && args[0].equalsIgnoreCase("setremainingtime")) {
+            int newRemainingTime = 0;
+
             try {
-                Integer.parseInt(args[1]);
+                newRemainingTime = Integer.parseInt(args[1]);
             } catch (Exception e) {
                 player.sendMessage(messageManager.getCMDInvalidNumberFormatComponent());
                 return false;
             }
-            int newRemainingTime = Integer.parseInt(args[1]);
+
             configManager.setRemainingTime(newRemainingTime);
             player.sendMessage(messageManager.getCMDRemainingTimeSetComponent(newRemainingTime));
             return false;
         }
+
         if(args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             configManager.reload();
             seasonManager.reload();
@@ -109,6 +129,7 @@ public class DynamicSeasonsCMD extends Command {
             player.sendMessage(messageManager.getCMDReloadComponent());
             return false;
         }
+
         player.sendMessage(messageManager.getCMDUsageComponent());
         return false;
     }
@@ -117,22 +138,28 @@ public class DynamicSeasonsCMD extends Command {
     public @NotNull List<String> tabComplete(@NotNull CommandSender commandSender, @NotNull String alias, @NotNull String[] args) throws IllegalArgumentException {
         if(!commandSender.hasPermission(configManager.getCMDPermission()))
             return List.of();
+
         if(args.length == 1)
             return List.of("setseason", "setremainingtime", "reload", "update", "spawnboss");
+
         if(args.length == 2) {
             if(args[0].equalsIgnoreCase("setseason") || args[0].equalsIgnoreCase("spawnboss"))
                 return List.of("spring", "summer", "fall", "winter");
+
             if(args[0].equalsIgnoreCase("setremainingtime")) {
                 commandSender.sendActionBar(Component.text("Current remaining time in seconds: " + seasonManager.getRemainingTime()));
             }
         }
+
         if(args.length == 3) {
             if(args[0].equalsIgnoreCase("spawnboss") && List.of("spring", "summer", "fall", "winter").contains(args[1])) {
                 List<String> bosses = new ArrayList<>();
                 var bossList = configManager.getBossList(args[1]);
+
                 for(var boss : bossList) {
                     bosses.add(boss.getEntityType().name());
                 }
+
                 return bosses;
             }
         }
