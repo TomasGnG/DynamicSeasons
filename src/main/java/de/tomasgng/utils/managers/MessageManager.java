@@ -11,9 +11,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MessageManager {
 
@@ -25,17 +23,14 @@ public class MessageManager {
 
     public MessageManager() {
         createFiles();
-        fixMissingSections();
     }
 
     @SneakyThrows
     private void createFiles() {
         if(!folder.exists()) folder.mkdirs();
+
         if(!file.exists()) {
             file.createNewFile();
-
-            cfg.set("CONFIG_VERSION", DynamicSeasons.getInstance().getDescription().getVersion());
-            cfg.setComments("CONFIG_VERSION", List.of("DONT CHANGE THIS! Simply ignore it :)"));
 
             cfg.set("prefix", "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|");
             cfg.set("command.noPermission", "%prefix% <gray>You have no permission to use this command.");
@@ -70,25 +65,6 @@ public class MessageManager {
         }
     }
 
-    private void fixMissingSections() {
-        if(cfg.isSet("CONFIG_VERSION") && cfg.getString("CONFIG_VERSION").equalsIgnoreCase(DynamicSeasons.getInstance().getDescription().getVersion()))
-            return;
-        Map<String, Object> oldValues = new LinkedHashMap<>();
-        for(var key : cfg.getKeys(true)) {
-            if(key.equalsIgnoreCase("CONFIG_VERSION"))
-                continue;
-            oldValues.put(key, cfg.get(key));
-        }
-
-        file.delete();
-        createFiles();
-
-        for(var entry : oldValues.entrySet()) {
-            cfg.set(entry.getKey(), entry.getValue());
-        }
-        save();
-    }
-
     @SneakyThrows
     private void save() {
         cfg.save(file);
@@ -104,43 +80,54 @@ public class MessageManager {
                                           @Nullable SeasonType newSeason,
                                           int newRemainingTime) {
         text = text.replace("%prefix%", getPrefixRaw());
+
         if(seasonBefore != null)
             text = text.replace("%seasonBefore%", configManager.getCurrentSeasonText(seasonBefore));
+
         if(newSeason != null)
             text = text.replace("%newSeason%", configManager.getCurrentSeasonText(newSeason));
+
         if(newRemainingTime != -1)
             text = text.replace("%remainingTime%", String.valueOf(newRemainingTime));
+
         return text;
     }
 
     private String getPrefixRaw() {
         var prefix = cfg.getString("prefix");
+
         if(prefix == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid prefix.");
             return "<gradient:#55C156:#FFFF00:#FFA500:#87CEFA>DynamicSeasons</gradient> <dark_gray>|";
         }
+
         try {
             mm.deserialize(prefix);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid prefix format.");
         }
+
         return prefix;
     }
 
     public Component getCMDNoPermissionComponent() {
         var msg = cfg.getString("command.noPermission");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You have no permission to use this command.", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid no permission message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid no permission format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
@@ -150,23 +137,29 @@ public class MessageManager {
                 "<br>%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>" +
                 "<br>%prefix% <gray>Usage: <yellow>/dynseasons spawnboss <spring|summer|fall|winter> <bosstype>" +
                 "<br>%prefix% <gray>Usage: <yellow>/dynseasons reload", null, null, -1));
+
         if(msgList.isEmpty()) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid usage message. Creating entry in message.yml...");
+
             cfg.set("command.usage",
                     List.of("%prefix% <gray>Usage: <yellow>/dynseasons setseason <spring|summer|fall|winter>",
                             "%prefix% <gray>Usage: <yellow>/dynseasons setremainingtime <seconds>",
                             "%prefix% <gray>Usage: <yellow>/dynseasons spawnboss <spring|summer|fall|winter> <bosstype>",
                             "%prefix% <gray>Usage: <yellow>/dynseasons reload"));
+
             save();
             return defaultCMDUsage;
         }
+
         Component msg = Component.text("");
+
         for (String s : msgList) {
             try {
                 if(msgList.indexOf(s) == msgList.size()-1) {
                     msg = msg.append(mm.deserialize(replaceAllPlaceholders(s, null, null, -1)));
                     continue;
                 }
+
                 msg = msg.append(mm.deserialize(replaceAllPlaceholders(s, null, null, -1))).appendNewline();
             } catch (Exception e) {
                 DynamicSeasons.getInstance().getLogger().severe("Invalid usage format.\nMessage: " + s + "\nError: " + e.getMessage());
@@ -180,51 +173,63 @@ public class MessageManager {
     public Component getCMDSeasonAlreadyActiveComponent() {
         var msg = cfg.getString("command.seasonAlreadyActive");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>This season is already active.", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season already active message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season already active format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
     public Component getCMDSeasonChangedComponent(SeasonType seasonBefore, SeasonType newSeason) {
         var msg = cfg.getString("command.seasonChanged");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You successfully changed the season from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.", seasonBefore, newSeason, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season changed message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, seasonBefore, newSeason, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season changed format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
     public Component getSeasonChangeBroadcastComponent(SeasonType seasonBefore, SeasonType newSeason) {
         var msg = cfg.getString("season_change.broadcast.text");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>The season was changed from <yellow>%seasonBefore% <gray>to <green>%newSeason%<gray>.", seasonBefore, newSeason, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, seasonBefore, newSeason, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change broadcast format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
@@ -250,22 +255,27 @@ public class MessageManager {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title.");
             return defaultTitleReturn;
         }
+
         if(subtitle == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change subtitle.");
             return defaultTitleReturn;
         }
+
         if(fadein == 0 || fadein > 60) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title fadein.");
             fadein = 1;
         }
+
         if(stay == 0 || stay > 60) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title stay.");
             stay = 4;
         }
+
         if(fadeout == 0 || fadeout > 60) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title fadeout.");
             fadeout = 1;
         }
+
         title = replaceAllPlaceholders(title, seasonBefore, newSeason, -1);
         subtitle = replaceAllPlaceholders(subtitle, seasonBefore, newSeason, -1);
 
@@ -275,6 +285,7 @@ public class MessageManager {
             DynamicSeasons.getInstance().getLogger().severe("Invalid season change title format.\nError: " + e.getMessage());
             return defaultTitleReturn;
         }
+
         try {
             mm.deserialize(subtitle);
         } catch (Exception e) {
@@ -293,90 +304,109 @@ public class MessageManager {
     public Component getCMDInvalidNumberFormatComponent() {
         var msg = cfg.getString("command.invalidNumberFormat");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>Invalid number!", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid invalidNumberFormat message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid invalidNumberFormat format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
     
     public Component getCMDRemainingTimeSetComponent(int newRemainingTime) {
         var msg = cfg.getString("command.remainingTimeSet");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <gray>You set the remaining time to <green>%remainingTime% seconds<gray>!", null, null, newRemainingTime));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid remainingTimeSet message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, newRemainingTime);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid remainingTimeSet format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
     public Component getCMDReloadComponent() {
         var msg = cfg.getString("command.reload");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <green>The plugin message.yml and config.yml were reloaded!", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid reload message.");
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid reload format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
     public Component getCMDBossSpawnedComponent() {
         var msg = cfg.getString("command.bossSpawned");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <green>You spawned a boss!", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid bossSpawned message. Creating entry in message.yml...");
             cfg.set("command.bossSpawned", "%prefix% <green>You spawned a boss!");
             save();
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid bossSpawned format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
 
     public Component getCMDNoBossFoundComponent() {
         var msg = cfg.getString("command.noBossFound");
         var defaultReturn = mm.deserialize(replaceAllPlaceholders("%prefix% <red>No boss found!", null, null, -1));
+
         if(msg == null) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid noBossFound message. Creating entry in message.yml...");
             cfg.set("command.noBossFound", "%prefix% <red>No boss found!");
             save();
             return defaultReturn;
         }
+
         msg = replaceAllPlaceholders(msg, null, null, -1);
+
         try {
             mm.deserialize(msg);
         } catch (Exception e) {
             DynamicSeasons.getInstance().getLogger().severe("Invalid noBossFound format.\nError: " + e.getMessage());
             return defaultReturn;
         }
+
         return mm.deserialize(msg);
     }
-
 }
