@@ -5,6 +5,7 @@ import de.tomasgng.utils.enums.SeasonType;
 import de.tomasgng.utils.enums.WeatherType;
 import de.tomasgng.utils.template.BossEntity;
 import de.tomasgng.utils.template.ItemBuilder;
+import de.tomasgng.utils.template.LootDrop;
 import de.tomasgng.utils.template.Particles;
 import lombok.SneakyThrows;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -53,7 +54,6 @@ public class ConfigManager {
     //region(SQLite)
     @SneakyThrows
     private void createConnection() {
-        new File("plugins/DynamicSeasons").mkdirs();
         connection = DriverManager.getConnection("jdbc:sqlite:plugins/DynamicSeasons/data.db");
 
         try (var statement = connection.prepareStatement(
@@ -66,9 +66,11 @@ public class ConfigManager {
     private void setupDatabase() {
         try(var statement = connection.prepareStatement(sqlSelectAllData)) {
             var rs = statement.executeQuery();
+
             if(rs.next())
                 return;
         }
+
         try(var statement2 = connection.prepareStatement("INSERT INTO data VALUES (?, ?)")) {
             statement2.setInt(1, getDuration());
             statement2.setString(2, SeasonType.SPRING.name());
@@ -80,6 +82,7 @@ public class ConfigManager {
     public SeasonType getCurrentSeasonTypeFromDatabase() {
         try(var statement = connection.prepareStatement(sqlSelectAllData)) {
             var rs = statement.executeQuery();
+
             rs.next();
             return SeasonType.valueOf(rs.getString("season"));
         }
@@ -89,6 +92,7 @@ public class ConfigManager {
     public int getRemainingTimeFromDatabase() {
         try (var statement = connection.prepareStatement(sqlSelectAllData)) {
             var rs = statement.executeQuery();
+
             rs.next();
             return rs.getInt("time");
         }
@@ -130,6 +134,7 @@ public class ConfigManager {
     @SneakyThrows
     private void createFiles() {
         if(!folder.exists()) folder.mkdirs();
+
         if(!config.exists()) {
             config.createNewFile();
 
@@ -151,22 +156,27 @@ public class ConfigManager {
             configCfg.setComments("season_duration", List.of("Visit the wiki for more help: https://github.com/TomasGnG/DynamicSeasons/wiki", "Specify the duration of the seasons in Seconds", "e.g. for one hour -> season_duration: 3600 "));
             configCfg.setComments("placeholders.currentSeason.text", List.of("Set the replacement for these seasons."));
         }
+
         if(!springFile.exists()) {
             springFile.createNewFile();
             createConfigValues(springCfg);
         }
+
         if(!summerFile.exists()) {
             summerFile.createNewFile();
             createConfigValues(summerCfg);
         }
+
         if(!fallFile.exists()) {
             fallFile.createNewFile();
             createConfigValues(fallCfg);
         }
+
         if(!winterFile.exists()) {
             winterFile.createNewFile();
             createConfigValues(winterCfg);
         }
+
         save();
     }
     
@@ -339,15 +349,19 @@ public class ConfigManager {
             case "spring" -> {
                 return springCfg;
             }
+
             case "summer" -> {
                 return summerCfg;
             }
+
             case "fall" -> {
                 return fallCfg;
             }
+
             case "winter" -> {
                 return winterCfg;
             }
+
             default -> {
                 return null;
             }
@@ -356,45 +370,55 @@ public class ConfigManager {
 
     public String getDurationPlaceholderName() {
         var name = configCfg.getString("placeholders.duration.placeholderName");
+
         if(name == null) {
             logger.severe("Invalid duration placeholderName. Using default name -> duration");
             return "duration";
         }
+
         return name;
     }
 
     public String getDurationPlacerholderRawFormat() {
         var format = configCfg.getString("placeholders.duration.format");
+
         if(format == null) {
             return "HH:mm:ss";
         }
+
         return format;
     }
 
     public String getCurrentSeasonPlaceholderName() {
         var name = configCfg.getString("placeholders.currentSeason.placeholderName");
+
         if(name == null) {
             logger.severe("Invalid currentSeason placeholderName. Using default name -> currentSeason");
             return "currentSeason";
         }
+
         return name;
     }
 
     public String getCurrentSeasonText(SeasonType seasonType) {
         var text = configCfg.getString("placeholders.currentSeason.text."+seasonType.name().toLowerCase());
+
         if(text == null) {
             logger.severe("Invalid currentSeason text for " + seasonType.name().toLowerCase() + ". Using default text -> " + seasonType.name());
             return seasonType.name();
         }
+
         return text;
     }
 
     public int getDuration() {
         int duration = configCfg.getInt("season_duration");
+
         if(duration < 10) {
             logger.severe("Invalid season_duration. Using default value -> 300!");
             return 300;
         }
+
         return duration;
     }
 
@@ -403,6 +427,7 @@ public class ConfigManager {
     public List<World> getAllowedWorlds() {
         List<World> worlds = new ArrayList<>();
         var section = configCfg.getStringList("worlds");
+
         for(var worldName : section) {
             if(Bukkit.getWorld(worldName) == null) {
                 if(!alreadyPrintedInvalidWorlds)
@@ -411,13 +436,16 @@ public class ConfigManager {
             }
             worlds.add(Bukkit.getWorld(worldName));
         }
+
         if(worlds.isEmpty()) {
             if(!alreadyPrintedInvalidWorlds) {
-                logger.severe("0 worlds loaded. Disabling plugin...");
-                logger.severe("Add worlds to your config.yml!");
+                logger.severe("0 worlds loaded. Please add worlds to your config.yml");
             }
-            Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> Bukkit.getPluginManager().disablePlugin(DynamicSeasons.getInstance()));
+
+            DynamicSeasons.getInstance().setPLUGIN_DISABLED(true);
+            DynamicSeasons.getInstance().setDISABLED_MESSAGE(mm.deserialize("<br><red>DynamicSeasons | 0 worlds loaded. Please add worlds to your config.yml.<br>"));
         }
+
         alreadyPrintedInvalidWorlds = true;
         return worlds;
     }
@@ -430,6 +458,7 @@ public class ConfigManager {
             configCfg.set("command.alias", List.of("dynseasons"));
             save();
         }
+
         var name = configCfg.getString("command.name");
         return name == null ? "dynamicseasons" : name;
     }
@@ -456,39 +485,48 @@ public class ConfigManager {
         var cfg = getCfgFromSeason(season);
         List<WeatherType> weatherTypes = new ArrayList<>();
         var sectionKeys = cfg.getConfigurationSection("weather.type").getKeys(false);
+
         for(var weatherType : sectionKeys) {
             if(cfg.getBoolean("weather.type." + weatherType))
                 weatherTypes.add(WeatherType.valueOf(weatherType.toUpperCase()));
         }
+
         return weatherTypes;
     }
 
     public int randomTickSpeed(String season) {
         var cfg = getCfgFromSeason(season);
         int randomTickSpeed = cfg.getInt("randomTickSpeed");
+
         if(randomTickSpeed <= 0) {
             logger.severe("[" + season + "] Invalid randomTickSpeed");
             return 3;
         }
+
         return randomTickSpeed;
     }
 
     public Map<EntityType, Double> getAnimalSpawning(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Double> animalSpawning = new HashMap<>();
+
         if(cfg.getConfigurationSection("animalSpawning") == null) {
             logger.severe("[" + season + "] Invalid animalSpawning");
             return animalSpawning;
         }
+
         var sectionKeys = cfg.getConfigurationSection("animalSpawning").getKeys(false);
+
         for (var animal : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(animal);
                 double spawnChance = cfg.getDouble("animalSpawning." + animal);
+
                 if(spawnChance > 100 || spawnChance < 0) {
                     logger.severe("[" + season + "] Invalid spawnChance for " + animal);
                     continue;
                 }
+
                 animalSpawning.put(entityType, spawnChance);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid animalSpawning for " + animal);
@@ -500,84 +538,107 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobMovement(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Double> mobMovement = new HashMap<>();
+
         if(cfg.getConfigurationSection("mobMovement") == null) {
             logger.severe("[" + season + "] Invalid mobMovement");
             return mobMovement;
         }
+
         var sectionKeys = cfg.getConfigurationSection("mobMovement").getKeys(false);
+
         for (var mob : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double movement = cfg.getDouble("mobMovement." + mob);
+
                 if(movement < 0)
                     throw new NullPointerException();
+
                 mobMovement.put(entityType, movement);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid mobMovement for " + mob);
             }
         }
+
         return mobMovement;
     }
 
     public Map<EntityType, Integer> getAnimalGrowing(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Integer> animalGrowing = new HashMap<>();
+
         if(cfg.getConfigurationSection("animalGrowing") == null) {
             logger.severe("[" + season + "] Invalid animalGrowing");
             return animalGrowing;
         }
+
         var sectionKeys = cfg.getConfigurationSection("animalGrowing").getKeys(false);
+
         for (var animal : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(animal);
                 int growTimeInTicks = cfg.getInt("animalGrowing." + animal);
+
                 if(growTimeInTicks < 20)
                     throw new NullPointerException();
+
                 animalGrowing.put(entityType, growTimeInTicks);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid animalGrowing for " + animal);
             }
         }
+
         return animalGrowing;
     }
 
     public Map<EntityType, Double> getMobBonusArmor(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Double> mobBonusArmor = new HashMap<>();
+
         if(cfg.getConfigurationSection("mobBonusArmor") == null) {
             logger.severe("[" + season + "] Invalid mobBonusArmor");
             return mobBonusArmor;
         }
+
         var sectionKeys = cfg.getConfigurationSection("mobBonusArmor").getKeys(false);
+
         for (var mob : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double bonusArmor = cfg.getDouble("mobBonusArmor." + mob);
+
                 if(bonusArmor < 0) {
                     throw new Exception();
                 }
+
                 mobBonusArmor.put(entityType, bonusArmor);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid mobBonusArmor for " + mob);
             }
         }
+
         return mobBonusArmor;
     }
 
     public Map<EntityType, Double> getMobMaxHealth(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Double> mobMaxHealth = new HashMap<>();
+
         if(cfg.getConfigurationSection("mobMaxHealth") == null) {
             logger.severe("[" + season + "] Invalid mobMaxHealth");
             return mobMaxHealth;
         }
+
         var sectionKeys = cfg.getConfigurationSection("mobMaxHealth").getKeys(false);
+
         for (var mob : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double maxHealth = cfg.getDouble("mobMaxHealth." + mob);
+
                 if(maxHealth <= 0)
                     throw new NullPointerException();
+
                 mobMaxHealth.put(entityType, maxHealth);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid mobMaxHealth for " + mob);
@@ -589,17 +650,22 @@ public class ConfigManager {
     public Map<EntityType, Double> getMobAttackDamage(String season) {
         var cfg = getCfgFromSeason(season);
         Map<EntityType, Double> mobAttackDamage = new HashMap<>();
+
         if(cfg.getConfigurationSection("mobAttackDamage") == null) {
             logger.severe("[" + season + "] Invalid mobAttackDamage");
             return mobAttackDamage;
         }
+
         var sectionKeys = cfg.getConfigurationSection("mobAttackDamage").getKeys(false);
+
         for (var mob : sectionKeys) {
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double attackDamage = cfg.getDouble("mobAttackDamage." + mob);
+
                 if(attackDamage <= 0)
                     throw new NullPointerException();
+
                 mobAttackDamage.put(entityType, attackDamage);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid mobAttackDamage for " + mob);
@@ -612,36 +678,45 @@ public class ConfigManager {
         var cfg = getCfgFromSeason(season);
         List<Material> preventCropGrowing = new ArrayList<>();
         var rawpreventCropGrowingList = cfg.getStringList("preventCropGrowing");
+
         for(var cropString : rawpreventCropGrowingList) {
             try {
                 var cropType = Material.valueOf(cropString);
+
                 preventCropGrowing.add(cropType);
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid preventCropGrowing for " + cropString);
             }
         }
+
         return preventCropGrowing;
     }
 
     public List<PotionEffect> getPotionEffects(String season) {
         var cfg = getCfgFromSeason(season);
         List<PotionEffect> potionEffects = new ArrayList<>();
+
         if(cfg.getConfigurationSection("potionEffects") == null) {
             logger.severe("[" + season + "] Invalid potionEffects");
             return potionEffects;
         }
+
         var keys = cfg.getConfigurationSection("potionEffects").getKeys(false);
+
         for(var key : keys) {
             try {
                 var type = PotionEffectType.getByName(key.toUpperCase());
                 var amplifier = cfg.getInt("potionEffects." + key)-1;
+
                 if(amplifier < 0)
                     throw new Exception();
+
                 potionEffects.add(type.createEffect(10*20, amplifier));
             } catch (Exception e) {
                 logger.severe("[" + season + "] Invalid potionEffects for " + key);
             }
         }
+
         return potionEffects;
     }
 
@@ -649,6 +724,7 @@ public class ConfigManager {
         var cfg = getCfgFromSeason(season);
         List<LootDrop> lootDrops = new ArrayList<>();
         var entities = cfg.getConfigurationSection("lootDrops").getKeys(false);
+
         for(var entity : entities) {
             try {
                 EntityType.valueOf(entity);
@@ -656,6 +732,7 @@ public class ConfigManager {
                 logger.severe("[" + season + "] Invalid LootDrops for " + entity);
                 continue;
             }
+
             Map<ItemStack, Double> itemList = new HashMap<>();
             var itemKeys = cfg.getConfigurationSection("lootDrops." + entity).getKeys(false);
 
@@ -677,6 +754,7 @@ public class ConfigManager {
                 cfg.getConfigurationSection("lootDrops." + entity + "." + item + ".enchantments").getKeys(false).forEach(enchantmentName -> {
                     var level = cfg.getInt("lootDrops." + entity + "." + item + ".enchantments." + enchantmentName);
                     var enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentName));
+
                     if(enchantment != null) {
                         if(level != 0) {
                             enchantments.put(enchantment, level);
@@ -696,6 +774,7 @@ public class ConfigManager {
                             "Item: " + item);
                     continue;
                 }
+
                 try {
                     mm.deserialize(displayname);
                 } catch (Exception e) {
@@ -726,6 +805,7 @@ public class ConfigManager {
                             "Item: " + item);
                     continue;
                 }
+
                 if(Material.getMaterial(material) == null) {
                     logger.severe("[" + season + "] Invalid material name '" + material + "'\n" +
                             "Mob: " + entity + "\n" +
@@ -757,6 +837,7 @@ public class ConfigManager {
 
             lootDrops.add(new LootDrop(EntityType.valueOf(entity), itemList));
         }
+
         return lootDrops;
     }
 
@@ -764,12 +845,14 @@ public class ConfigManager {
         var cfg = getCfgFromSeason(season);
         List<BossEntity> bossList = new ArrayList<>();
         var bossSection = cfg.getConfigurationSection("bossSpawning");
+
         if(bossSection == null) {
             logger.severe("[" + season + "] Invalid bossSpawning section");
             return bossList;
         }
 
         var mobTypeSection = bossSection.getKeys(false);
+
         for(var mobTypeString : mobTypeSection) {
             try {
                 EntityType.valueOf(mobTypeString);
@@ -788,47 +871,56 @@ public class ConfigManager {
             var bonusArmor = cfg.getDouble("bossSpawning." + mobTypeString + ".bonusArmor");
             var followRange = cfg.getInt("bossSpawning." + mobTypeString + ".followRange");
             var droppedXPOnDeath = cfg.getInt("bossSpawning." + mobTypeString + ".droppedXPOnDeath");
+
             if(displayName == null) {
                 logger.severe("[" + season + "] Invalid bossSpawning displayname!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(checkMMFormat(displayName) != null) {
                 logger.severe("[" + season + "] Invalid bossSpawning displayname format!" +
                         "\nMobtype: " + mobTypeString +
                         "\nError: " + checkMMFormat(displayName));
                 continue;
             }
+
             if(spawnChance > 100 || spawnChance < 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning spawnChance!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(maxHealth <= 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning maxHealth!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(attackDamage <= 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning attackDamage!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(movementSpeed <= 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning movementSpeed!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(bonusArmor < 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning bonusArmor!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(followRange <= 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning followRange!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             if(droppedXPOnDeath < 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning droppedXPOnDeath!" +
                         "\nMobtype: " + mobTypeString);
@@ -836,28 +928,33 @@ public class ConfigManager {
             }
 
             var soundsSection = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".sounds");
+
             if(soundsSection == null) {
                 logger.severe("[" + season + "] Invalid bossSpawning Sounds section for " + mobTypeString);
                 continue;
             }
-            var soundsKeys = soundsSection.getKeys(false);
 
+            var soundsKeys = soundsSection.getKeys(false);
             boolean invalidSound = false;
+
             for(var soundString : soundsKeys) {
                 if(cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".volume") < 0) {
                     logger.severe("[" + season + "] Invalid bossSpawning sound volume!" +
                             "\nMobtype: " + mobTypeString +
                             "\nSound: " + soundString);
+
                     invalidSound = true;
                 }
+
                 if(cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") < 0 || cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") > 2) {
                     logger.severe("[" + season + "] Invalid bossSpawning sound pitch!" +
                             "\nMobtype: " + mobTypeString +
                             "\nSound: " + soundString);
+
                     invalidSound = true;
                 }
-
             }
+
             if(invalidSound)
                 continue;
 
@@ -909,71 +1006,86 @@ public class ConfigManager {
                     .build();
 
             var commandsSection = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".executeCommandsOnDeath");
+
             if(commandsSection == null) {
                 logger.severe("[" + season + "] Invalid BossSpawning executeCommandsOnDeath section for " + mobTypeString);
                 continue;
             }
-            var executeCommandsOnDeathEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.enabled");
-            List<String> commandList = cfg.getStringList("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.commands");
 
+            var executeCommandsOnDeathEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.enabled");
+            var commandList = cfg.getStringList("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.commands");
             var lootDrops = getBossSpawningLootDrops(season, mobTypeString);
 
             if(cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects") == null) {
                 logger.severe("[" + season + "] Invalid BossSpawning potionEffects section for " + mobTypeString);
                 continue;
             }
+
             List<PotionEffect> spawnPotionEffects = new ArrayList<>();
             var spawnPotionEffectTypes = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects.spawn").getKeys(false);
+
             for(var effectString : spawnPotionEffectTypes) {
                 PotionEffectType potionEffectType = PotionEffectType.getByName(effectString);
                 int level = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.spawn." + effectString + ".level");
                 int time = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.spawn." + effectString + ".time");
+
                 if(potionEffectType == null) {
                     logger.severe("[" + season + "] Invalid BossSpawning potionEffects PotionEffectType '" + effectString + "' for " + mobTypeString);
                     continue;
                 }
+
                 if(level < 1) {
                     logger.severe("[" + season + "] Invalid bossSpawning potionEffects level!" +
                             "\nPotion: " + effectString +
                             "\nMobtype: " + mobTypeString);
                     continue;
                 }
+
                 if(time < 1) {
                     logger.severe("[" + season + "] Invalid bossSpawning potionEffects time!" +
                             "\nPotion: " + effectString +
                             "\nMobtype: " + mobTypeString);
                     continue;
                 }
+
                 spawnPotionEffects.add(new PotionEffect(potionEffectType, level, time*20));
             }
+
             int cycleTime = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.cycle.time");
             List<PotionEffect> cyclePotionEffects = new ArrayList<>();
+
             if(cycleTime < 1) {
                 logger.severe("[" + season + "] Invalid bossSpawning potionEffects cycle time!" +
                         "\nMobtype: " + mobTypeString);
                 continue;
             }
+
             var cyclePotionEffectTypes = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects.cycle.effects").getKeys(false);
+
             for(var effectString : cyclePotionEffectTypes) {
                 PotionEffectType potionEffectType = PotionEffectType.getByName(effectString);
                 int level = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.cycle.effects." + effectString + ".level");
                 int time = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects..cycle.effects." + effectString + ".time");
+
                 if(potionEffectType == null) {
                     logger.severe("[" + season + "] Invalid BossSpawning potionEffects cycle PotionEffectType '" + effectString + "' for " + mobTypeString);
                     continue;
                 }
+
                 if(level < 1) {
                     logger.severe("[" + season + "] Invalid bossSpawning potionEffects cycle level!" +
                             "\nPotion: " + effectString +
                             "\nMobtype: " + mobTypeString);
                     continue;
                 }
+
                 if(time < 1) {
                     logger.severe("[" + season + "] Invalid bossSpawning potionEffects cycle time!" +
                             "\nPotion: " + effectString +
                             "\nMobtype: " + mobTypeString);
                     continue;
                 }
+
                 cyclePotionEffects.add(new PotionEffect(potionEffectType, level, time*20));
             }
 
@@ -990,8 +1102,10 @@ public class ConfigManager {
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.minSpawnCount", List.of("Minimum spawn count of mobs"));
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.maxSpawnCount", List.of("Maximum spawn count of mobs"));
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.mobs", List.of("Mobs that should spawn -> random mobs from the list will spawn!"));
+
                 save();
             }
+
             boolean summoningEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".summoning.enabled");
             int summoningRadius = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.radius");
             int summoningCycleTime = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.cycleTime");
@@ -1004,16 +1118,19 @@ public class ConfigManager {
                         "\nSeason: " + season);
                 continue;
             }
+
             if(summoningCycleTime <= 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning summoning cycleTime!" +
                         "\nSeason: " + season);
                 continue;
             }
+
             if(summoningMinSpawnCount < 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning summoning minSpawnCount!" +
                         "\nSeason: " + season);
                 continue;
             }
+
             if(summoningMaxSpawnCount < 0) {
                 logger.severe("[" + season + "] Invalid bossSpawning summoning maxSpawnCount!" +
                         "\nSeason: " + season);
@@ -1021,6 +1138,7 @@ public class ConfigManager {
             }
 
             var tempSummoningMobs = cfg.getStringList("bossSpawning." + mobTypeString + ".summoning.mobs");
+
             for(var summoningMobType : tempSummoningMobs) {
                 try {
                     summoningMobs.add(EntityType.valueOf(summoningMobType.toUpperCase()));
@@ -1061,20 +1179,24 @@ public class ConfigManager {
                     summoningMaxSpawnCount,
                     summoningMobs
             );
+
             bossList.add(bossEntity);
         }
+
         return bossList;
     }
 
     private Map<ItemStack, Double> getBossSpawningLootDrops(String season, String mobType) {
         var cfg = getCfgFromSeason(season);
         Map<ItemStack, Double> lootDrops = new HashMap<>();
+
         if(cfg.getConfigurationSection("bossSpawning." + mobType + ".lootOnDeath") == null) {
             logger.severe("[" + season + "] Invalid bossSpawning lootOnDeath section");
             return lootDrops;
         }
 
         var items = cfg.getConfigurationSection("bossSpawning." + mobType + ".lootOnDeath").getKeys(false);
+
         for(var item : items) {
             var displayname = cfg.getString("bossSpawning." + mobType + ".lootOnDeath." + item + ".displayname");
             var lore = cfg.getStringList("bossSpawning." + mobType + ".lootOnDeath." + item + ".lore");
@@ -1092,6 +1214,7 @@ public class ConfigManager {
             cfg.getConfigurationSection("bossSpawning." + mobType + ".lootOnDeath." + item + ".enchantments").getKeys(false).forEach(enchantmentName -> {
                 var level = cfg.getInt("bossSpawning." + mobType + ".lootOnDeath." + item + ".enchantments." + enchantmentName);
                 var enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentName));
+
                 if (enchantment != null) {
                     if (level != 0) {
                         enchantments.put(enchantment, level);
@@ -1108,6 +1231,7 @@ public class ConfigManager {
                         "Item: " + item);
                 continue;
             }
+
             try {
                 mm.deserialize(displayname);
             } catch (Exception e) {
@@ -1135,6 +1259,7 @@ public class ConfigManager {
                         "Item: " + item);
                 continue;
             }
+
             if (Material.getMaterial(material) == null) {
                 logger.severe("[" + season + "] Invalid bossSpawning lootOnDeath material name '" + material + "'\n" +
                         "Item: " + item + "\n");
@@ -1160,21 +1285,25 @@ public class ConfigManager {
                     .addEnchantments(enchantments)
                     .build(), dropChance);
         }
+
         return lootDrops;
     }
 
     public int getXPBonus(String season) {
         var cfg = getCfgFromSeason(season);
         int xpBonus = cfg.getInt("xpBonus");
+
         if(xpBonus < 0) {
             logger.severe("[" + season + "] Invalid xpBonus");
             return 0;
         }
+
         return xpBonus;
     }
 
     public Particles getParticles(String season) {
         var cfg = getCfgFromSeason(season);
+
         if(!cfg.isSet("particles")) {
             cfg.set("particles.enabled", true);
             cfg.set("particles.offsetX", 5);
@@ -1192,8 +1321,10 @@ public class ConfigManager {
             cfg.setInlineComments("particles.speed", List.of("Speed of the particles"));
             cfg.setInlineComments("particles.particle.SNOWFLAKE.minSpawnAmount", List.of("Minimum spawn amount of the particle"));
             cfg.setInlineComments("particles.particle.SNOWFLAKE.maxSpawnAmount", List.of("Maximum spawn amount of the particle"));
+
             save();
         }
+
         var particlesEnabled = cfg.getBoolean("particles.enabled");
         var offsetX = cfg.getInt("particles.offsetX");
         var offsetY = cfg.getInt("particles.offsetY");
@@ -1206,21 +1337,25 @@ public class ConfigManager {
             logger.severe("[" + season + "] particle offset cant be below 0!");
             return null;
         }
+
         if(spawnTime < 0) {
             logger.severe("[" + season + "] particle spawnTime cant be below 0!");
             return null;
         }
 
         var particleKeys = cfg.getConfigurationSection("particles.particle").getKeys(false);
+
         for(var particleString : particleKeys) {
             Particle particle;
             Integer[] spawnAmounts = new Integer[2];
+
             try {
                 particle = Particle.valueOf(particleString);
             } catch (IllegalArgumentException e) {
                 logger.severe("[" + season + "] Invalid particle type!");
                 continue;
             }
+
             try {
                 spawnAmounts[0] = Integer.parseInt(cfg.getString("particles.particle." + particleString + ".minSpawnAmount"));
                 spawnAmounts[1] = Integer.parseInt(cfg.getString("particles.particle." + particleString + ".maxSpawnAmount"));
@@ -1228,6 +1363,7 @@ public class ConfigManager {
                 logger.severe("[" + season + "] Invalid particle spawnAmount for " + particleString);
                 continue;
             }
+
             particleMap.put(particle, spawnAmounts);
         }
 
@@ -1244,6 +1380,7 @@ public class ConfigManager {
     private String checkMMFormat(String mmString) {
         try {
             mm.deserialize(mmString);
+
             return null;
         } catch (Exception e) {
             return e.getMessage();
