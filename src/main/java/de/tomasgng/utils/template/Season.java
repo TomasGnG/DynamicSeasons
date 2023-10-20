@@ -80,7 +80,9 @@ public class Season {
         for(var world : worlds) {
             world.setGameRule(GameRule.RANDOM_TICK_SPEED, randomTickSpeed);
         }
+
         startPotionEffectTimer();
+
         if(particles != null) {
             particles.startParticleTimer();
         }
@@ -88,6 +90,7 @@ public class Season {
 
     public void stop() {
         stopPotionEffectTimer();
+
         if(particles != null) {
             particles.stopParticleTimer();
         }
@@ -96,49 +99,65 @@ public class Season {
     public boolean handleWeatherUpdate(World world, WeatherType weatherTo) {
         if(!weather)
             return false;
+
         if(!isValidWorld(world))
             return false;
+
         return !weatherTypes.contains(weatherTo);
     }
 
     public boolean handleAnimalSpawning(LivingEntity entity, CreatureSpawnEvent.SpawnReason spawnReason) {
         if(!isValidWorld(entity.getWorld()))
             return false;
+
         if(spawnReason.equals(CreatureSpawnEvent.SpawnReason.EGG))
             return false;
+
         if(!animalSpawning.containsKey(entity.getType())) {
             handleBossSpawning(entity, false);
+
             if(isBoss(entity))
                 return false;
+
             handleMobMovement(entity);
             handleAnimalGrowing(entity);
             handleMobArmorBonus(entity);
             handleMobMaxHealth(entity);
             handleMobAttackDamage(entity);
+
             return false;
         }
+
         double chanceToSpawn = animalSpawning.get(entity.getType());
         double randomChance = rnd.nextDouble(0, 101);
+
         if(randomChance <= chanceToSpawn)
             return true;
+
         handleBossSpawning(entity, false);
+
         if(isBoss(entity))
             return false;
+
         handleAnimalGrowing(entity);
         handleMobMovement(entity);
         handleMobArmorBonus(entity);
         handleMobMaxHealth(entity);
         handleMobAttackDamage(entity);
+
         return false;
     }
 
     private void handleAnimalGrowing(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(!animalGrowing.containsKey(entity.getType()))
             return;
+
         if(!(entity instanceof Ageable ageable))
             return;
+
         if(!ageable.isAdult())
             ageable.setAge(-animalGrowing.get(entity.getType()));
     }
@@ -146,27 +165,36 @@ public class Season {
     private void handleMobMovement(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(!mobMovement.containsKey(entity.getType()))
             return;
+
         var movementSpeed = mobMovement.get(entity.getType());
+
         entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(movementSpeed);
     }
 
     private void handleMobArmorBonus(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(!mobBonusArmor.containsKey(entity.getType()))
             return;
+
         var bonusArmor = mobBonusArmor.get(entity.getType());
+
         entity.getAttribute(Attribute.GENERIC_ARMOR).setBaseValue(bonusArmor);
     }
 
     private void handleMobMaxHealth(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(!mobMaxHealth.containsKey(entity.getType()))
             return;
+
         var maxHealth = mobMaxHealth.get(entity.getType());
+
         entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
         entity.setHealth(entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue());
     }
@@ -174,15 +202,19 @@ public class Season {
     private void handleMobAttackDamage(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(!mobAttackDamage.containsKey(entity.getType()))
             return;
+
         var attackDamage = mobAttackDamage.get(entity.getType());
+
         entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(attackDamage);
     }
 
     public boolean handleCropGrowing(Material material, World world) {
         if(!isValidWorld(world))
             return false;
+
         return preventCropGrowing.contains(material);
     }
 
@@ -190,13 +222,17 @@ public class Season {
 
     private void startPotionEffectTimer() {
         stopPotionEffectTimer = false;
+
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), bukkitTask -> {
             if(stopPotionEffectTimer)
                 bukkitTask.cancel();
+
             List<Player> players = new ArrayList<>();
+
             for(var world : worlds) {
                 players.addAll(world.getPlayers());
             }
+
             players.forEach(player -> {
                 player.addPotionEffects(potionEffects);
             });
@@ -214,30 +250,38 @@ public class Season {
     public void handleLootDrops(LivingEntity entity) {
         if(!isValidWorld(entity.getWorld()))
             return;
+
         if(entity.getKiller() == null)
             return;
+
         LootDrop lootdrop = null;
+
         for(var loot : lootDrops) {
             if(loot.getEntity().equals(entity.getType()))
                 lootdrop = loot;
         }
+
         if(lootdrop == null)
             return;
 
         boolean isBoss = false;
+
         for(var boss : activeBosses) {
             if (entity == boss.getEntity()) {
                 isBoss = true;
                 break;
             }
         }
+
         if(isBoss)
             return;
 
         var world = entity.getWorld();
         var loc = entity.getLocation();
+
         for(var entry : lootdrop.getItemStacks().entrySet()) {
             double randomChance = rnd.nextDouble(1, 101);
+
             if(randomChance <= entry.getValue())
                 world.dropItemNaturally(loc, entry.getKey());
         }
@@ -248,30 +292,39 @@ public class Season {
             if(entity == boss.getEntity())
                 return true;
         }
+
         return false;
     }
 
     public void handleBossSpawning(LivingEntity entity, boolean forceBoss) {
         if(!isValidWorld(entity.getWorld()) && !forceBoss)
             return;
+
         var type = entity.getType();
         BossEntity boss = null;
+
         for(var currentBoss : bossList) {
             if(currentBoss.getEntityType() == type)
                 boss = currentBoss.clone();
         }
+
         if(boss == null)
             return;
+
         boolean playerIsNearby = false;
         var nearbyEntites = entity.getNearbyEntities(25, 10, 25);
+
         for(var nearbyEntity : nearbyEntites) {
             if(nearbyEntity.getType() == EntityType.PLAYER)
                 playerIsNearby = true;
         }
+
         if(!playerIsNearby && !forceBoss)
             return;
+
         double randomChance = rnd.nextDouble(0, 101);
         double bossSpawnChance = boss.getSpawnChance();
+
         if(randomChance <= bossSpawnChance && !forceBoss) {
             activeBosses.add(boss);
             boss.setEntity(entity);
@@ -291,6 +344,7 @@ public class Season {
         activeBosses.forEach(boss -> {
             if(event.getDamager() == boss.getEntity())
                 boss.handleDealDamage();
+
             if(event.getEntity() == boss.getEntity())
                 boss.handleTakeDamage();
         });

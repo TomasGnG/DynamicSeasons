@@ -33,9 +33,11 @@ public class ItemBuilder {
 
     public ItemBuilder setLore(String... lore) {
         var loreList = new ArrayList<Component>();
+
         for(var line : lore) {
             loreList.add(MiniMessage.miniMessage().deserialize(line));
         }
+
         this.itemMeta.lore(loreList);
         return this;
     }
@@ -44,6 +46,7 @@ public class ItemBuilder {
         for(var entry : enchantments.entrySet()) {
             this.itemMeta.addEnchant(entry.getKey(), entry.getValue(), true);
         }
+
         return this;
     }
 

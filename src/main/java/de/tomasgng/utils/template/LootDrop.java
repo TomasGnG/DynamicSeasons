@@ -17,6 +17,4 @@ public class LootDrop {
         this.entity = entity;
         this.itemStacks = itemStacks;
     }
-
-
 }

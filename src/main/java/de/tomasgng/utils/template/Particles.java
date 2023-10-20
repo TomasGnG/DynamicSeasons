@@ -28,6 +28,7 @@ public class Particles {
     private double speed;
     @Setter
     private Map<Particle, Integer[]> particleMap;
+
     private final Random random = new Random();
 
     public Particles(
@@ -52,24 +53,27 @@ public class Particles {
     public void startParticleTimer() {
         if(!enabled)
             return;
+
         var worlds = DynamicSeasons.getInstance().getConfigManager().getAllowedWorlds();
+
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
             if(stopTimer) {
                 task.cancel();
                 stopTimer = false;
                 return;
             }
+
             List<Player> receivers = new ArrayList<>();
             worlds.forEach(world -> receivers.addAll(world.getPlayers()));
+
             for (var entry : particleMap.entrySet()) {
                 var builder = new ParticleBuilder(entry.getKey())
                         .count(random.nextInt(entry.getValue()[0], entry.getValue()[1]+1))
                         .extra(speed)
                         .offset(offsetX, offsetY, offsetZ)
                         .force(false);
-                receivers.forEach(player -> {
-                    builder.location(player.getLocation()).spawn();
-                });
+
+                receivers.forEach(player -> builder.location(player.getLocation()).spawn());
             }
         }, 20L, spawnTime);
     }
