@@ -2,7 +2,6 @@ package de.tomasgng.utils.template;
 
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.WeatherType;
-import de.tomasgng.utils.managers.LootDrop;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.Material;
