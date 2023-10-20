@@ -157,37 +157,46 @@ public class BossEntity implements Cloneable {
         entity.setHealth(getMaxHealth());
         entity.setSilent(true);
         entity.addPotionEffects(spawnPotionEffects);
+
         if(entity instanceof Ageable ageable) {
             if(!isBabyMob() && !ageable.isAdult()) {
                 ageable.setAdult();
             }
         }
+
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
             if(entity.isDead()) {
                 task.cancel();
                 return;
             }
+
             lastHitAgo++;
         }, 0L,20L);
+
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
             if(entity.isDead()) {
                 task.cancel();
                 return;
             }
+
             entity.addPotionEffects(cyclePotionEffects);
+
             Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> {
                 entity.customName(mm.deserialize(getDisplayName()
                         .replace("%hp%", df.format(entity.getHealth()))
                         .replace("%maxHP%", df.format(getMaxHealth()))));
             });
         }, cycleTime * 20L, cycleTime * 20L);
+
         if(isSummoningEnabled()) {
             Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), task -> {
                 if(entity.isDead()) {
                     task.cancel();
                     return;
                 }
+
                 int mobSpawnCount = random.nextInt(getSummoningMinSpawnCount(), getSummoningMaxSpawnCount()+1);
+
                 for (int i = 0; i < mobSpawnCount; i++) {
                     var randomMobIndex = random.nextInt(0, getSummoningMobs().size());
                     var mobType = getSummoningMobs().get(randomMobIndex);
@@ -195,6 +204,7 @@ public class BossEntity implements Cloneable {
                     int randomZ = random.nextInt(-getSummoningRadius(), getSummoningRadius()+1);
                     int randomY = entity.getWorld().getHighestBlockYAt(entity.getLocation().getBlockX()+randomX, entity.getLocation().getBlockZ()+randomZ);
                     var spawnLocation = new Location(entity.getWorld(), entity.getLocation().getBlockX()+randomX, randomY+2, entity.getLocation().getBlockZ()+randomZ);
+
                     entity.getWorld().spawnEntity(spawnLocation, mobType);
                 }
             }, getSummoningCycleTime() * 20L, getSummoningCycleTime() * 20L);
@@ -211,6 +221,7 @@ public class BossEntity implements Cloneable {
                             nearbyEntity.playSound(getAmbientSound());
                     }
                 });
+
                 startAmbientSounds();
             }
         }, random.nextInt(3, 6)*20L);
@@ -263,6 +274,7 @@ public class BossEntity implements Cloneable {
     public void handleTakeDamage() {
         playTakeDamageSound();
         lastHitAgo = 0;
+
         Bukkit.getScheduler().runTask(DynamicSeasons.getInstance(), () -> {
             entity.customName(mm.deserialize(getDisplayName()
                     .replace("%hp%", df.format(entity.getHealth()))
@@ -273,28 +285,35 @@ public class BossEntity implements Cloneable {
     public boolean handleDeath(EntityDeathEvent event) {
         if(event.getEntity() != entity)
             return false;
+
         var killer = entity.getKiller();
 
         event.setDroppedExp(getDroppedXPOnDeath());
         event.setShouldPlayDeathSound(false);
         event.getDrops().clear();
+
         playDeathSound();
 
         if(killer == null)
             return true;
+
         var world = entity.getWorld();
         var loc = entity.getLocation();
+
         for(var entry : lootDrops.entrySet()) {
             double randomChance = random.nextDouble(1, 101);
+
             if(randomChance <= entry.getValue())
                 world.dropItemNaturally(loc, entry.getKey());
         }
 
         if(!isExecuteCommandsEnabled())
             return true;
+
         getCommandsList().forEach(cmd -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", killer.getName()));
         });
+
         return true;
     }
     //endregion
