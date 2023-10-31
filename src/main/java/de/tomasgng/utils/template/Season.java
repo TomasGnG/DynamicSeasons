@@ -23,14 +23,23 @@ public class Season {
     private final boolean weather;
     private final List<WeatherType> weatherTypes;
     private final int randomTickSpeed;
+    private final boolean isAnimalSpawningEnabled;
     private final Map<EntityType, Double> animalSpawning;
+    private final boolean isMobMovenemtEnabled;
     private final Map<EntityType, Double> mobMovement;
+    private final boolean isAnimalGrowingEnabled;
     private final Map<EntityType, Integer> animalGrowing;
+    private final boolean isMobBonusArmorEnabled;
     private final Map<EntityType, Double> mobBonusArmor;
+    private final boolean isMobMaxHealthEnabled;
     private final Map<EntityType, Double> mobMaxHealth;
+    private final boolean isMobAttackDamageEnabled;
     private final Map<EntityType, Double> mobAttackDamage;
+    private final boolean isPreventCropGrowingEnabled;
     private final List<Material> preventCropGrowing;
+    private final boolean isPotionEffectsEnabled;
     private final List<PotionEffect> potionEffects;
+    private final boolean isLootDropsEnabled;
     private final List<LootDrop> lootDrops;
     private final List<BossEntity> bossList;
     private final int xpBonus;
@@ -42,14 +51,23 @@ public class Season {
                   boolean weather,
                   List<WeatherType> weatherTypes,
                   int randomTickSpeed,
+                  boolean isAnimalSpawningEnabled,
                   Map<EntityType, Double> animalSpawning,
+                  boolean isMobMovenemtEnabled,
                   Map<EntityType, Double> mobMovement,
+                  boolean isAnimalGrowingEnabled,
                   Map<EntityType, Integer> animalGrowing,
+                  boolean isMobBonusArmorEnabled,
                   Map<EntityType, Double> mobBonusArmor,
+                  boolean isMobMaxHealthEnabled,
                   Map<EntityType, Double> mobMaxHealth,
+                  boolean isMobAttackDamageEnabled,
                   Map<EntityType, Double> mobAttackDamage,
+                  boolean isPreventCropGrowingEnabled,
                   List<Material> preventCropGrowing,
+                  boolean isPotionEffectsEnabled,
                   List<PotionEffect> potionEffects,
+                  boolean isLootDropsEnabled,
                   List<LootDrop> lootDrops,
                   List<BossEntity> bossList,
                   int xpBonus,
@@ -58,14 +76,23 @@ public class Season {
         this.weather = weather;
         this.weatherTypes = weatherTypes;
         this.randomTickSpeed = randomTickSpeed;
+        this.isAnimalSpawningEnabled = isAnimalSpawningEnabled;
         this.animalSpawning = animalSpawning;
+        this.isMobMovenemtEnabled = isMobMovenemtEnabled;
         this.mobMovement = mobMovement;
+        this.isAnimalGrowingEnabled = isAnimalGrowingEnabled;
         this.animalGrowing = animalGrowing;
+        this.isMobBonusArmorEnabled = isMobBonusArmorEnabled;
         this.mobBonusArmor = mobBonusArmor;
+        this.isMobMaxHealthEnabled = isMobMaxHealthEnabled;
         this.mobMaxHealth = mobMaxHealth;
+        this.isMobAttackDamageEnabled = isMobAttackDamageEnabled;
         this.mobAttackDamage = mobAttackDamage;
+        this.isPreventCropGrowingEnabled = isPreventCropGrowingEnabled;
         this.preventCropGrowing = preventCropGrowing;
+        this.isPotionEffectsEnabled = isPotionEffectsEnabled;
         this.potionEffects = potionEffects;
+        this.isLootDropsEnabled = isLootDropsEnabled;
         this.lootDrops = lootDrops;
         this.bossList = bossList;
         this.xpBonus = xpBonus;
@@ -128,11 +155,13 @@ public class Season {
             return false;
         }
 
-        double chanceToSpawn = animalSpawning.get(entity.getType());
-        double randomChance = rnd.nextDouble(0, 101);
+        if(isAnimalSpawningEnabled) {
+            double chanceToSpawn = animalSpawning.get(entity.getType());
+            double randomChance = rnd.nextDouble(0, 101);
 
-        if(randomChance <= chanceToSpawn)
-            return true;
+            if(randomChance <= chanceToSpawn)
+                return true;
+        }
 
         handleBossSpawning(entity, false);
 
@@ -149,6 +178,9 @@ public class Season {
     }
 
     private void handleAnimalGrowing(LivingEntity entity) {
+        if(!isAnimalGrowingEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
@@ -163,6 +195,9 @@ public class Season {
     }
 
     private void handleMobMovement(LivingEntity entity) {
+        if(!isMobMovenemtEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
@@ -175,6 +210,9 @@ public class Season {
     }
 
     private void handleMobArmorBonus(LivingEntity entity) {
+        if(!isMobBonusArmorEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
@@ -187,6 +225,9 @@ public class Season {
     }
 
     private void handleMobMaxHealth(LivingEntity entity) {
+        if(!isMobMaxHealthEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
@@ -200,6 +241,9 @@ public class Season {
     }
 
     private void handleMobAttackDamage(LivingEntity entity) {
+        if(isMobAttackDamageEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
@@ -212,6 +256,9 @@ public class Season {
     }
 
     public boolean handleCropGrowing(Material material, World world) {
+        if(!isPreventCropGrowingEnabled)
+            return false;
+
         if(!isValidWorld(world))
             return false;
 
@@ -248,6 +295,9 @@ public class Season {
     }
 
     public void handleLootDrops(LivingEntity entity) {
+        if(!isLootDropsEnabled)
+            return;
+
         if(!isValidWorld(entity.getWorld()))
             return;
 
