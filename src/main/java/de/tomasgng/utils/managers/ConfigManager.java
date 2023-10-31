@@ -185,28 +185,48 @@ public class ConfigManager {
         seasonCfg.set("weather.type.clear", true);
         seasonCfg.set("weather.type.storm", true);
         seasonCfg.set("weather.type.thunder", false);
+
         seasonCfg.set("randomTickSpeed", 4);
+
+        seasonCfg.set("animalSpawning.enabled", true);
         seasonCfg.set("animalSpawning.SHEEP", 80);
         seasonCfg.set("animalSpawning.CHICKEN", 40);
+
+        seasonCfg.set("mobMovement.enabled", true);
         seasonCfg.set("mobMovement.ZOMBIE", 0.3);
         seasonCfg.set("mobMovement.SPIDER", 0.4);
+
+        seasonCfg.set("animalGrowing.enabled", true);
         seasonCfg.set("animalGrowing.COW", 6000);
         seasonCfg.set("animalGrowing.SHEEP", 3600);
+
+        seasonCfg.set("mobBonusArmor.enabled", true);
         seasonCfg.set("mobBonusArmor.ZOMBIE", 2.5);
         seasonCfg.set("mobBonusArmor.CREEPER", 1.0);
+
+        seasonCfg.set("mobMaxHealth.enabled", true);
         seasonCfg.set("mobMaxHealth.CREEPER", 25.0);
         seasonCfg.set("mobMaxHealth.ZOMBIE", 30.0);
+
+        seasonCfg.set("mobAttackDamage.enabled", true);
         seasonCfg.set("mobAttackDamage.ZOMBIE", 4.0);
         seasonCfg.set("mobAttackDamage.SPIDER", 3.0);
-        seasonCfg.set("preventCropGrowing", List.of("POTATOES", "CARROTS"));
+
+        seasonCfg.set("preventCropGrowing.enabled", true);
+        seasonCfg.set("preventCropGrowing.crops", List.of("POTATOES", "CARROTS"));
+
+        seasonCfg.set("potionEffects.enabled", true);
         seasonCfg.set("potionEffects.SPEED", 1);
         seasonCfg.set("potionEffects.REGENERATION", 1);
+
+        seasonCfg.set("lootDrops.enabled", true);
         seasonCfg.set("lootDrops.ZOMBIE.1.displayname", "<yellow>Mysterious Sword");
         seasonCfg.set("lootDrops.ZOMBIE.1.lore", List.of("<gray>This sword is", "<gray>veeery mysterious!"));
         seasonCfg.set("lootDrops.ZOMBIE.1.material", Material.DIAMOND_SWORD.name());
         seasonCfg.set("lootDrops.ZOMBIE.1.amount", 1);
         seasonCfg.set("lootDrops.ZOMBIE.1.dropChance", 10);
         seasonCfg.set("lootDrops.ZOMBIE.1.enchantments.sharpness", 2);
+
         seasonCfg.set("bossSpawning.ZOMBIE.displayName", "<yellow>BOSS <dark_gray>| <green>%hp%<dark_gray>/<yellow>%maxHP% <dark_red>❤");
         seasonCfg.set("bossSpawning.ZOMBIE.nameVisible", false);
         seasonCfg.set("bossSpawning.ZOMBIE.babyMob", false);
@@ -253,6 +273,7 @@ public class ConfigManager {
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.minSpawnCount", 1);
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.maxSpawnCount", 4);
         seasonCfg.set("bossSpawning.ZOMBIE.summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
+
         seasonCfg.set("particles.enabled", true);
         seasonCfg.set("particles.offsetX", 5);
         seasonCfg.set("particles.offsetY", 5);
@@ -261,7 +282,9 @@ public class ConfigManager {
         seasonCfg.set("particles.speed", 0.0);
         seasonCfg.set("particles.particle.SNOWFLAKE.minSpawnAmount", 10);
         seasonCfg.set("particles.particle.SNOWFLAKE.maxSpawnAmount", 40);
+
         seasonCfg.set("xpBonus", 20);
+
         seasonCfg.setInlineComments("particles.enabled", List.of("Should this feature be enabled?"));
         seasonCfg.setInlineComments("particles.offsetX", List.of("spread the spawned particle"));
         seasonCfg.setInlineComments("particles.offsetY", List.of("spread the spawned particle"));
@@ -518,6 +541,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("animalSpawning").getKeys(false);
 
         for (var animal : sectionKeys) {
+            if(animal.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(animal);
                 double spawnChance = cfg.getDouble("animalSpawning." + animal);
@@ -532,6 +558,7 @@ public class ConfigManager {
                 logger.severe("[" + season + "] Invalid animalSpawning for " + animal);
             }
         }
+
         return animalSpawning;
     }
 
@@ -547,6 +574,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("mobMovement").getKeys(false);
 
         for (var mob : sectionKeys) {
+            if(mob.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double movement = cfg.getDouble("mobMovement." + mob);
@@ -575,6 +605,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("animalGrowing").getKeys(false);
 
         for (var animal : sectionKeys) {
+            if(animal.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(animal);
                 int growTimeInTicks = cfg.getInt("animalGrowing." + animal);
@@ -603,6 +636,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("mobBonusArmor").getKeys(false);
 
         for (var mob : sectionKeys) {
+            if(mob.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double bonusArmor = cfg.getDouble("mobBonusArmor." + mob);
@@ -632,6 +668,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("mobMaxHealth").getKeys(false);
 
         for (var mob : sectionKeys) {
+            if(mob.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double maxHealth = cfg.getDouble("mobMaxHealth." + mob);
@@ -644,6 +683,7 @@ public class ConfigManager {
                 logger.severe("[" + season + "] Invalid mobMaxHealth for " + mob);
             }
         }
+
         return mobMaxHealth;
     }
 
@@ -659,6 +699,9 @@ public class ConfigManager {
         var sectionKeys = cfg.getConfigurationSection("mobAttackDamage").getKeys(false);
 
         for (var mob : sectionKeys) {
+            if(mob.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType entityType = EntityType.valueOf(mob);
                 double attackDamage = cfg.getDouble("mobAttackDamage." + mob);
@@ -671,13 +714,31 @@ public class ConfigManager {
                 logger.severe("[" + season + "] Invalid mobAttackDamage for " + mob);
             }
         }
+
         return mobAttackDamage;
     }
 
     public List<Material> getPreventCropGrowing(String season) {
         var cfg = getCfgFromSeason(season);
         List<Material> preventCropGrowing = new ArrayList<>();
-        var rawpreventCropGrowingList = cfg.getStringList("preventCropGrowing");
+
+        if(!cfg.isSet("preventCropGrowing")) {
+            cfg.set("preventCropGrowing.enabled", true);
+            cfg.set("preventCropGrowing.crops", List.of("POTATOES", "CARROTS"));
+            save();
+        }
+
+        if(!cfg.isSet("preventCropGrowing.enabled")) {
+            cfg.set("preventCropGrowing.enabled", true);
+            save();
+        }
+
+        if(!cfg.isSet("preventCropGrowing.crops")) {
+            cfg.set("preventCropGrowing.crops", List.of("POTATOES", "CARROTS"));
+            save();
+        }
+
+        var rawpreventCropGrowingList = cfg.getStringList("preventCropGrowing.crops");
 
         for(var cropString : rawpreventCropGrowingList) {
             try {
@@ -704,6 +765,9 @@ public class ConfigManager {
         var keys = cfg.getConfigurationSection("potionEffects").getKeys(false);
 
         for(var key : keys) {
+            if(key.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 var type = PotionEffectType.getByName(key.toUpperCase());
                 var amplifier = cfg.getInt("potionEffects." + key)-1;
@@ -726,6 +790,9 @@ public class ConfigManager {
         var entities = cfg.getConfigurationSection("lootDrops").getKeys(false);
 
         for(var entity : entities) {
+            if(entity.equalsIgnoreCase("enabled"))
+                continue;
+
             try {
                 EntityType.valueOf(entity);
             } catch (Exception e) {
@@ -1375,6 +1442,23 @@ public class ConfigManager {
                 spawnTime,
                 speed,
                 particleMap);
+    }
+
+    public boolean isFeatureEnabled(String season, String feature) {
+        var cfg = getCfgFromSeason(season);
+
+        if(!cfg.isSet(feature)) {
+            logger.severe("[" + season + "] " + feature + " section is missing!");
+            return false;
+        }
+
+        if(!cfg.isSet(feature + ".enabled")) {
+            cfg.set(feature + ".enabled", true);
+            save();
+            return true;
+        }
+
+        return cfg.getBoolean(feature + ".enabled");
     }
 
     private String checkMMFormat(String mmString) {
