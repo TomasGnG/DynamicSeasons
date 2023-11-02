@@ -46,6 +46,10 @@ public class BossEntity implements Cloneable {
     @Getter @Setter
     private int droppedXPOnDeath;
     @Getter @Setter
+    private boolean isMessageOnSpawnEnabled;
+    @Getter @Setter
+    private List<String> messagesOnSpawn;
+    @Getter @Setter
     private Sound spawnSound;
     @Getter @Setter
     private Sound ambientSound;
@@ -97,6 +101,8 @@ public class BossEntity implements Cloneable {
                       double bonusArmor,
                       int followRange,
                       int droppedXPOnDeath,
+                      boolean isMessageOnSpawnEnabled,
+                      List<String> messagesOnSpawn,
                       Sound spawnSound,
                       Sound ambientSound,
                       Sound deathSound,
@@ -125,6 +131,8 @@ public class BossEntity implements Cloneable {
         setBonusArmor(bonusArmor);
         setFollowRange(followRange);
         setDroppedXPOnDeath(droppedXPOnDeath);
+        setMessageOnSpawnEnabled(isMessageOnSpawnEnabled);
+        setMessagesOnSpawn(messagesOnSpawn);
         setSpawnSound(spawnSound);
         setAmbientSound(ambientSound);
         setDeathSound(deathSound);
@@ -149,14 +157,31 @@ public class BossEntity implements Cloneable {
                 .replace("%hp%", df.format(getMaxHealth()))
                 .replace("%maxHP%", df.format(getMaxHealth()))));
         entity.setCustomNameVisible(isNameVisible());
+
         entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(getMaxHealth());
         entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(getAttackDamage());
         entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(getMovementSpeed());
         entity.getAttribute(Attribute.GENERIC_ARMOR).setBaseValue(getBonusArmor());
         entity.getAttribute(Attribute.GENERIC_FOLLOW_RANGE).setBaseValue(getFollowRange());
+
         entity.setHealth(getMaxHealth());
         entity.setSilent(true);
         entity.addPotionEffects(spawnPotionEffects);
+
+        if(isMessageOnSpawnEnabled()) {
+            for (var msg : messagesOnSpawn) {
+                var deserialized = mm.deserialize(
+                        msg.replaceAll("%boss%", getDisplayName())
+                        .replaceAll("%x%", entity.getLocation().getBlockX() + "")
+                        .replaceAll("%y%", entity.getLocation().getBlockY() + "")
+                        .replaceAll("%z%", entity.getLocation().getBlockZ() + "")
+                        .replaceAll("%hp%", df.format(getMaxHealth()))
+                        .replaceAll("%maxHP%", df.format(getMaxHealth()))
+                );
+
+                Bukkit.broadcast(deserialized);
+            }
+        }
 
         if(entity instanceof Ageable ageable) {
             if(!isBabyMob() && !ageable.isAdult()) {
@@ -200,10 +225,29 @@ public class BossEntity implements Cloneable {
                 for (int i = 0; i < mobSpawnCount; i++) {
                     var randomMobIndex = random.nextInt(0, getSummoningMobs().size());
                     var mobType = getSummoningMobs().get(randomMobIndex);
+
                     int randomX = random.nextInt(-getSummoningRadius(), getSummoningRadius()+1);
                     int randomZ = random.nextInt(-getSummoningRadius(), getSummoningRadius()+1);
-                    int randomY = entity.getWorld().getHighestBlockYAt(entity.getLocation().getBlockX()+randomX, entity.getLocation().getBlockZ()+randomZ);
+                    int randomY = entity.getLocation().getBlockY()+2;
+
+                    boolean lastBlockWasAir = false;
+                    for (int j = -2; j < 256; j++) {
+                        var material = entity.getWorld().getBlockAt(
+                                entity.getLocation().getBlockX()+randomX,
+                                entity.getLocation().getBlockY()+j,
+                                entity.getLocation().getBlockZ()+randomZ).getType();
+
+                        if(material.isAir()) {
+                            if(lastBlockWasAir) {
+                                randomY = entity.getLocation().getBlockY()+(j-1);
+                                break;
+                            } else
+                                lastBlockWasAir = true;
+                        }
+                    }
+
                     var spawnLocation = new Location(entity.getWorld(), entity.getLocation().getBlockX()+randomX, randomY+2, entity.getLocation().getBlockZ()+randomZ);
+
 
                     entity.getWorld().spawnEntity(spawnLocation, mobType);
                 }
