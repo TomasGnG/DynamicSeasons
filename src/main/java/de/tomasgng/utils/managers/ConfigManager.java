@@ -237,6 +237,8 @@ public class ConfigManager {
         seasonCfg.set("bossSpawning.ZOMBIE.bonusArmor", 20.0);
         seasonCfg.set("bossSpawning.ZOMBIE.followRange", 20);
         seasonCfg.set("bossSpawning.ZOMBIE.droppedXPOnDeath", 400);
+        seasonCfg.set("bossSpawning.ZOMBIE.messageOnSpawn.enabled", true);
+        seasonCfg.set("bossSpawning.ZOMBIE.messageOnSpawn.message", List.of("", "%boss% <red>has spawned!", "<yellow>Coordinates: %x%, %y%, %z%", "<yellow>HP: %hp%<dark_gray>/<yellow>%maxHP%", ""));
         seasonCfg.set("bossSpawning.ZOMBIE.sounds.spawn.sound", Sound.ENTITY_ENDER_DRAGON_GROWL.key().value());
         seasonCfg.set("bossSpawning.ZOMBIE.sounds.spawn.volume", 1.0F);
         seasonCfg.set("bossSpawning.ZOMBIE.sounds.spawn.pitch", 0.5F);
@@ -920,6 +922,7 @@ public class ConfigManager {
 
         var mobTypeSection = bossSection.getKeys(false);
 
+        mobTypeForLoop:
         for(var mobTypeString : mobTypeSection) {
             try {
                 EntityType.valueOf(mobTypeString);
@@ -928,16 +931,26 @@ public class ConfigManager {
                 continue;
             }
 
-            var displayName = cfg.getString("bossSpawning." + mobTypeString + ".displayName");
-            var nameVisible = cfg.getBoolean("bossSpawning." + mobTypeString + ".nameVisible");
-            var babyMob = cfg.getBoolean("bossSpawning." + mobTypeString + ".babyMob");
-            var spawnChance = cfg.getDouble("bossSpawning." + mobTypeString + ".spawnChance");
-            var maxHealth = cfg.getDouble("bossSpawning." + mobTypeString + ".maxHealth");
-            var attackDamage = cfg.getDouble("bossSpawning." + mobTypeString + ".attackDamage");
-            var movementSpeed = cfg.getDouble("bossSpawning." + mobTypeString + ".movementSpeed");
-            var bonusArmor = cfg.getDouble("bossSpawning." + mobTypeString + ".bonusArmor");
-            var followRange = cfg.getInt("bossSpawning." + mobTypeString + ".followRange");
-            var droppedXPOnDeath = cfg.getInt("bossSpawning." + mobTypeString + ".droppedXPOnDeath");
+            var bossPath = "bossSpawning." + mobTypeString;
+
+            if(!cfg.isSet(bossPath + ".messageOnSpawn")) {
+                cfg.set(bossPath + ".messageOnSpawn.enabled", true);
+                cfg.set(bossPath + ".messageOnSpawn.message", List.of("", "%boss% <red>has spawned!", "<yellow>Coordinates: %x%, %y%, %z%", "<yellow>HP: %hp%<dark_gray>/<yellow>%maxHP%", ""));
+                save();
+            }
+
+            var displayName = cfg.getString(bossPath + ".displayName");
+            var nameVisible = cfg.getBoolean(bossPath + ".nameVisible");
+            var babyMob = cfg.getBoolean(bossPath + ".babyMob");
+            var spawnChance = cfg.getDouble(bossPath + ".spawnChance");
+            var maxHealth = cfg.getDouble(bossPath + ".maxHealth");
+            var attackDamage = cfg.getDouble(bossPath + ".attackDamage");
+            var movementSpeed = cfg.getDouble(bossPath + ".movementSpeed");
+            var bonusArmor = cfg.getDouble(bossPath + ".bonusArmor");
+            var followRange = cfg.getInt(bossPath + ".followRange");
+            var droppedXPOnDeath = cfg.getInt(bossPath + ".droppedXPOnDeath");
+            var isMessageOnSpawnEnabled = cfg.getBoolean(bossPath + ".messageOnSpawn.enabled");
+            var messagesOnSpawn = cfg.getStringList(bossPath + ".messageOnSpawn.message");
 
             if(displayName == null) {
                 logger.severe("[" + season + "] Invalid bossSpawning displayname!" +
@@ -994,7 +1007,16 @@ public class ConfigManager {
                 continue;
             }
 
-            var soundsSection = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".sounds");
+            for (String msg : messagesOnSpawn) {
+                if(checkMMFormat(msg) != null) {
+                    logger.severe("[" + season + "] Invalid messageOnSpawn message!" +
+                            "\nMobtype: " + mobTypeString +
+                            "\nMessage: " + msg);
+                    continue mobTypeForLoop;
+                }
+            }
+
+            var soundsSection = cfg.getConfigurationSection(bossPath + ".sounds");
 
             if(soundsSection == null) {
                 logger.severe("[" + season + "] Invalid bossSpawning Sounds section for " + mobTypeString);
@@ -1005,7 +1027,7 @@ public class ConfigManager {
             boolean invalidSound = false;
 
             for(var soundString : soundsKeys) {
-                if(cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".volume") < 0) {
+                if(cfg.getDouble(bossPath + ".sounds." + soundString + ".volume") < 0) {
                     logger.severe("[" + season + "] Invalid bossSpawning sound volume!" +
                             "\nMobtype: " + mobTypeString +
                             "\nSound: " + soundString);
@@ -1013,7 +1035,7 @@ public class ConfigManager {
                     invalidSound = true;
                 }
 
-                if(cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") < 0 || cfg.getDouble("bossSpawning." + mobTypeString + ".sounds." + soundString + ".pitch") > 2) {
+                if(cfg.getDouble(bossPath + ".sounds." + soundString + ".pitch") < 0 || cfg.getDouble(bossPath + ".sounds." + soundString + ".pitch") > 2) {
                     logger.severe("[" + season + "] Invalid bossSpawning sound pitch!" +
                             "\nMobtype: " + mobTypeString +
                             "\nSound: " + soundString);
@@ -1025,21 +1047,21 @@ public class ConfigManager {
             if(invalidSound)
                 continue;
 
-            var spawnSoundType = cfg.getString("bossSpawning." + mobTypeString + ".sounds.spawn.sound").toLowerCase();
-            var spawnSoundVolume = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.spawn.volume");
-            var spawnSoundPitch = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.spawn.pitch");
-            var ambientSoundType = cfg.getString("bossSpawning." + mobTypeString + ".sounds.ambient.sound").toLowerCase();
-            var ambientSoundVolume = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.ambient.volume");
-            var ambientSoundPitch = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.ambient.pitch");
-            var deathSoundType = cfg.getString("bossSpawning." + mobTypeString + ".sounds.death.sound").toLowerCase();
-            var deathSoundVolume = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.death.volume");
-            var deathSoundPitch = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.death.pitch");
-            var takeDamageSoundType = cfg.getString("bossSpawning." + mobTypeString + ".sounds.takeDamage.sound").toLowerCase();
-            var takeDamageSoundVolume = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.takeDamage.volume");
-            var takeDamageSoundPitch = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.takeDamage.pitch");
-            var dealDamageSoundType = cfg.getString("bossSpawning." + mobTypeString + ".sounds.dealDamage.sound").toLowerCase();
-            var dealDamageSoundVolume = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.dealDamage.volume");
-            var dealDamageSoundPitch = cfg.getDouble("bossSpawning." + mobTypeString + ".sounds.dealDamage.pitch");
+            var spawnSoundType = cfg.getString(bossPath + ".sounds.spawn.sound").toLowerCase();
+            var spawnSoundVolume = cfg.getDouble(bossPath + ".sounds.spawn.volume");
+            var spawnSoundPitch = cfg.getDouble(bossPath + ".sounds.spawn.pitch");
+            var ambientSoundType = cfg.getString(bossPath + ".sounds.ambient.sound").toLowerCase();
+            var ambientSoundVolume = cfg.getDouble(bossPath + ".sounds.ambient.volume");
+            var ambientSoundPitch = cfg.getDouble(bossPath + ".sounds.ambient.pitch");
+            var deathSoundType = cfg.getString(bossPath + ".sounds.death.sound").toLowerCase();
+            var deathSoundVolume = cfg.getDouble(bossPath + ".sounds.death.volume");
+            var deathSoundPitch = cfg.getDouble(bossPath + ".sounds.death.pitch");
+            var takeDamageSoundType = cfg.getString(bossPath + ".sounds.takeDamage.sound").toLowerCase();
+            var takeDamageSoundVolume = cfg.getDouble(bossPath + ".sounds.takeDamage.volume");
+            var takeDamageSoundPitch = cfg.getDouble(bossPath + ".sounds.takeDamage.pitch");
+            var dealDamageSoundType = cfg.getString(bossPath + ".sounds.dealDamage.sound").toLowerCase();
+            var dealDamageSoundVolume = cfg.getDouble(bossPath + ".sounds.dealDamage.volume");
+            var dealDamageSoundPitch = cfg.getDouble(bossPath + ".sounds.dealDamage.pitch");
 
             net.kyori.adventure.sound.Sound spawnSound = net.kyori.adventure.sound.Sound.sound()
                     .type(NamespacedKey.minecraft(spawnSoundType))
@@ -1072,29 +1094,29 @@ public class ConfigManager {
                     .source(net.kyori.adventure.sound.Sound.Source.HOSTILE)
                     .build();
 
-            var commandsSection = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".executeCommandsOnDeath");
+            var commandsSection = cfg.getConfigurationSection(bossPath + ".executeCommandsOnDeath");
 
             if(commandsSection == null) {
                 logger.severe("[" + season + "] Invalid BossSpawning executeCommandsOnDeath section for " + mobTypeString);
                 continue;
             }
 
-            var executeCommandsOnDeathEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.enabled");
-            var commandList = cfg.getStringList("bossSpawning." + mobTypeString + ".executeCommandsOnDeath.commands");
+            var executeCommandsOnDeathEnabled = cfg.getBoolean(bossPath + ".executeCommandsOnDeath.enabled");
+            var commandList = cfg.getStringList(bossPath + ".executeCommandsOnDeath.commands");
             var lootDrops = getBossSpawningLootDrops(season, mobTypeString);
 
-            if(cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects") == null) {
+            if(cfg.getConfigurationSection(bossPath + ".potionEffects") == null) {
                 logger.severe("[" + season + "] Invalid BossSpawning potionEffects section for " + mobTypeString);
                 continue;
             }
 
             List<PotionEffect> spawnPotionEffects = new ArrayList<>();
-            var spawnPotionEffectTypes = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects.spawn").getKeys(false);
+            var spawnPotionEffectTypes = cfg.getConfigurationSection(bossPath + ".potionEffects.spawn").getKeys(false);
 
             for(var effectString : spawnPotionEffectTypes) {
                 PotionEffectType potionEffectType = PotionEffectType.getByName(effectString);
-                int level = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.spawn." + effectString + ".level");
-                int time = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.spawn." + effectString + ".time");
+                int level = cfg.getInt(bossPath + ".potionEffects.spawn." + effectString + ".level");
+                int time = cfg.getInt(bossPath + ".potionEffects.spawn." + effectString + ".time");
 
                 if(potionEffectType == null) {
                     logger.severe("[" + season + "] Invalid BossSpawning potionEffects PotionEffectType '" + effectString + "' for " + mobTypeString);
@@ -1118,7 +1140,7 @@ public class ConfigManager {
                 spawnPotionEffects.add(new PotionEffect(potionEffectType, level, time*20));
             }
 
-            int cycleTime = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.cycle.time");
+            int cycleTime = cfg.getInt(bossPath + ".potionEffects.cycle.time");
             List<PotionEffect> cyclePotionEffects = new ArrayList<>();
 
             if(cycleTime < 1) {
@@ -1127,12 +1149,12 @@ public class ConfigManager {
                 continue;
             }
 
-            var cyclePotionEffectTypes = cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".potionEffects.cycle.effects").getKeys(false);
+            var cyclePotionEffectTypes = cfg.getConfigurationSection(bossPath + ".potionEffects.cycle.effects").getKeys(false);
 
             for(var effectString : cyclePotionEffectTypes) {
                 PotionEffectType potionEffectType = PotionEffectType.getByName(effectString);
-                int level = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects.cycle.effects." + effectString + ".level");
-                int time = cfg.getInt("bossSpawning." + mobTypeString + ".potionEffects..cycle.effects." + effectString + ".time");
+                int level = cfg.getInt(bossPath + ".potionEffects.cycle.effects." + effectString + ".level");
+                int time = cfg.getInt(bossPath + ".potionEffects..cycle.effects." + effectString + ".time");
 
                 if(potionEffectType == null) {
                     logger.severe("[" + season + "] Invalid BossSpawning potionEffects cycle PotionEffectType '" + effectString + "' for " + mobTypeString);
@@ -1156,13 +1178,13 @@ public class ConfigManager {
                 cyclePotionEffects.add(new PotionEffect(potionEffectType, level, time*20));
             }
 
-            if(cfg.getConfigurationSection("bossSpawning." + mobTypeString + ".summoning") == null) {
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.enabled", true);
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.radius", 5);
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.cycleTime", 15);
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.minSpawnCount", 1);
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.maxSpawnCount", 4);
-                cfg.set("bossSpawning." + mobTypeString + ".summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
+            if(cfg.getConfigurationSection(bossPath + ".summoning") == null) {
+                cfg.set(bossPath + ".summoning.enabled", true);
+                cfg.set(bossPath + ".summoning.radius", 5);
+                cfg.set(bossPath + ".summoning.cycleTime", 15);
+                cfg.set(bossPath + ".summoning.minSpawnCount", 1);
+                cfg.set(bossPath + ".summoning.maxSpawnCount", 4);
+                cfg.set(bossPath + ".summoning.mobs", List.of(EntityType.ZOMBIE.name(), EntityType.SKELETON.name()));
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.enabled", List.of("Should this feature be enabled?"));
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.radius", List.of("Spawnradius in blocks"));
                 cfg.setInlineComments("bossSpawning.ZOMBIE.summoning.cycleTime", List.of("The repeating time in seconds"));
@@ -1173,11 +1195,11 @@ public class ConfigManager {
                 save();
             }
 
-            boolean summoningEnabled = cfg.getBoolean("bossSpawning." + mobTypeString + ".summoning.enabled");
-            int summoningRadius = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.radius");
-            int summoningCycleTime = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.cycleTime");
-            int summoningMinSpawnCount = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.minSpawnCount");
-            int summoningMaxSpawnCount = cfg.getInt("bossSpawning." + mobTypeString + ".summoning.maxSpawnCount");
+            boolean summoningEnabled = cfg.getBoolean(bossPath + ".summoning.enabled");
+            int summoningRadius = cfg.getInt(bossPath + ".summoning.radius");
+            int summoningCycleTime = cfg.getInt(bossPath + ".summoning.cycleTime");
+            int summoningMinSpawnCount = cfg.getInt(bossPath + ".summoning.minSpawnCount");
+            int summoningMaxSpawnCount = cfg.getInt(bossPath + ".summoning.maxSpawnCount");
             List<EntityType> summoningMobs = new ArrayList<>();
 
             if(summoningRadius <= 0) {
@@ -1204,7 +1226,7 @@ public class ConfigManager {
                 continue;
             }
 
-            var tempSummoningMobs = cfg.getStringList("bossSpawning." + mobTypeString + ".summoning.mobs");
+            var tempSummoningMobs = cfg.getStringList(bossPath + ".summoning.mobs");
 
             for(var summoningMobType : tempSummoningMobs) {
                 try {
@@ -1228,6 +1250,8 @@ public class ConfigManager {
                     bonusArmor,
                     followRange,
                     droppedXPOnDeath,
+                    isMessageOnSpawnEnabled,
+                    messagesOnSpawn,
                     spawnSound,
                     ambientSound,
                     deathSound,
