@@ -1,5 +1,12 @@
 package de.tomasgng.utils.template;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.flags.StateFlag;
+import com.sk89q.worldguard.protection.managers.RegionManager;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import com.sk89q.worldguard.protection.regions.RegionContainer;
 import de.tomasgng.DynamicSeasons;
 import de.tomasgng.utils.enums.WeatherType;
 import org.bukkit.Bukkit;
@@ -108,7 +115,8 @@ public class Season {
             world.setGameRule(GameRule.RANDOM_TICK_SPEED, randomTickSpeed);
         }
 
-        startPotionEffectTimer();
+        if(isPotionEffectsEnabled)
+            startPotionEffectTimer();
 
         if(particles != null) {
             particles.startParticleTimer();
@@ -139,6 +147,19 @@ public class Season {
 
         if(spawnReason.equals(CreatureSpawnEvent.SpawnReason.EGG))
             return false;
+
+        try {
+            RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
+            RegionManager manager = container.get(BukkitAdapter.adapt(entity.getLocation().getWorld()));
+
+            assert manager != null;
+            var region = manager.getApplicableRegions(BukkitAdapter.asBlockVector(entity.getLocation()))
+                    .getRegions().toArray(new ProtectedRegion[0])[0];
+
+            if(region.getFlag(Flags.MOB_SPAWNING) == StateFlag.State.DENY) {
+                return false;
+            }
+        } catch (Exception ignored) {}
 
         if(!animalSpawning.containsKey(entity.getType())) {
             handleBossSpawning(entity, false);
@@ -271,8 +292,10 @@ public class Season {
         stopPotionEffectTimer = false;
 
         Bukkit.getScheduler().runTaskTimer(DynamicSeasons.getInstance(), bukkitTask -> {
-            if(stopPotionEffectTimer)
+            if(stopPotionEffectTimer) {
                 bukkitTask.cancel();
+                return;
+            }
 
             List<Player> players = new ArrayList<>();
 
