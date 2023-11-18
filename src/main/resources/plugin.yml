@@ -6,3 +6,4 @@ authors: [TomasGnG]
 description: Make your worlds more beautiful with seasons.
 softdepend:
   - PlaceholderAPI
+  - WorldGuard
